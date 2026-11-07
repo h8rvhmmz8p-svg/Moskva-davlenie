@@ -16,6 +16,7 @@
   </script>
   <title>Атмосфера — Москва: погода и поиск хищной рыбы</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <link rel="stylesheet" href="https://evamaps.ru/sdk/1/evamaps.css">
   <style>
     :root { color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; --ink:#182541; --muted:#64748b; --line:#e5eaf2; --blue:#386aeb; }
     * { box-sizing:border-box; }
@@ -222,6 +223,10 @@
     .map-panel{margin-top:18px;}
     .map-subtitle{font-size:12px;line-height:1.58;color:var(--muted);margin:8px 0 0;}
     .map-toolbar{display:grid;gap:12px;margin-bottom:14px;}
+    .map-provider{display:flex;align-items:center;gap:10px;justify-content:space-between;flex-wrap:wrap;border:1px solid var(--line);border-radius:13px;background:var(--soft);padding:9px 12px;}
+    .map-provider label{font-size:12px;font-weight:750;color:var(--muted);}
+    .map-provider select{flex:1;max-width:220px;min-height:38px;border:1px solid var(--line);border-radius:10px;padding:0 10px;background:var(--panel-bg);color:var(--ink);font:650 13px -apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;}
+    .map-provider-note{font-size:11px;line-height:1.5;color:var(--muted);margin:-4px 0 2px;}
     .map-search{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;}
     .map-search input{width:100%;min-width:0;min-height:46px;padding:0 13px;border:1px solid var(--line);border-radius:12px;background:var(--panel-bg);color:var(--ink);font:650 14px -apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;}
     .map-search input::placeholder{color:var(--muted);}
@@ -470,6 +475,8 @@
           <p class="map-subtitle">Найдите водоём по названию, выберите готовую точку или нажмите на карту. Погода, ветер и индекс условий пересчитаются для выбранных координат.</p>
           <div class="fold-top-actions"><button class="text-button" id="myLocationBtn" type="button">⌖ Моя точка</button></div>
       <div class="map-toolbar">
+        <div class="map-provider"><label for="mapProvider">Картографический сервис</label><select id="mapProvider" aria-label="Выбор сервиса карты"><option value="eva">EvaMaps · Россия</option><option value="osm">OpenStreetMap · запасной</option></select></div>
+        <p class="map-provider-note">EvaMaps — российский сервис на основе OpenStreetMap, с русскими названиями. Бесплатный лимит для небольшого сайта; ключ для карты не нужен. <a href="https://evamaps.ru/pricing" target="_blank" rel="noopener noreferrer">Условия</a>.</p>
         <div class="map-search">
           <input id="spotSearch" type="search" placeholder="Например, Истринское водохранилище" autocomplete="off" enterkeyhint="search">
           <button id="spotSearchBtn" type="button">Найти</button>
@@ -566,6 +573,7 @@
     <footer class="footer"><strong>История давления, ветра и влажности сохраняется в браузере этого устройства.</strong> При открытии страницы подгружаются данные за последние 92 дня. При очистке данных Safari архив может пропасть. В закрытом Safari фоновое накопление не выполняется, но пропуски можно восстановить из погодного архива. Для общего хранилища на разных устройствах нужен сервер.</footer>
   </main>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="https://evamaps.ru/sdk/1/evamaps.js"></script>
 <script>
 (() => {
   'use strict';
@@ -615,7 +623,11 @@
   function saveSpot(){
     try{localStorage.setItem(SPOT_STORAGE,JSON.stringify(spot));}catch(_){}
   }
+  const MAP_PROVIDER_KEY='moscow_weather_map_provider_v1';
+  function readMapProvider(){try{return localStorage.getItem(MAP_PROVIDER_KEY)==='osm'?'osm':'eva';}catch(_){return 'eva';}}
+  let mapProvider=readMapProvider(), mapEngine=null;
   let spot=readSpot(), map=null, mapMarker=null, spotGeneration=0, updateQueued=false;
+  $('mapProvider').value=mapProvider;
   function spotLabel(){return spot.name||'Выбранная точка';}
   function updateSpotLabels(){
     $('locationBadge').textContent='📍 '+spotLabel();
@@ -644,8 +656,15 @@
       fishPrefs={...fishPrefs,water:next.water};
       try{localStorage.setItem(FISH_PREF_KEY,JSON.stringify(fishPrefs));}catch(_){}
     }
-    if(mapMarker) mapMarker.setLatLng([lat,lon]);
-    if(map && options.moveMap!==false) map.setView([lat,lon], options.zoom ?? Math.max(map.getZoom()||9,9));
+    if(mapMarker){
+      if(mapEngine==='eva')mapMarker.setLngLat([lon,lat]);
+      else mapMarker.setLatLng([lat,lon]);
+    }
+    if(map && options.moveMap!==false){
+      const zoom=options.zoom ?? Math.max(map.getZoom()||9,9);
+      if(mapEngine==='eva')map.setView([lon,lat],zoom);
+      else map.setView([lat,lon],zoom);
+    }
     loadSpotArchive();
     if(options.update!==false) update();
   }
@@ -1181,28 +1200,72 @@
     }catch(err){showNotice('Не удалось найти точку: '+err.message+'. Попробуйте уточнить название водоёма.');}
     finally{$('spotSearchBtn').disabled=false;$('spotSearchBtn').textContent='Найти';}
   }
-  function initMap(){
+  function destroyMap(){
+    if(map){
+      if(mapEngine==='eva')map.destroy();
+      else map.remove();
+    }
+    map=null;mapMarker=null;mapEngine=null;
+    $('map').replaceChildren();
+  }
+  function initMap(zoom=9){
     const holder=$('map');
-    if(!(window.L&&holder)){
+    if(!holder)return;
+    if(map)destroyMap();
+    let engine=mapProvider;
+    if(engine==='eva'&&!window.EvaMaps){
+      engine='osm';
+      $('mapStatus').textContent='Сервис EvaMaps недоступен. Временно открыта карта OpenStreetMap.';
+    }
+    if(engine==='osm'&&!window.L){
       holder.innerHTML='<div class="map-fallback">Карта не загрузилась. Проверьте интернет или откройте страницу через сайт, а не из локального файла.</div>';
       return;
     }
-    map=L.map(holder,{zoomControl:true,scrollWheelZoom:false}).setView([spot.lat,spot.lon],9);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© OpenStreetMap'}).addTo(map);
-    mapMarker=L.marker([spot.lat,spot.lon],{draggable:true}).addTo(map);
-    mapMarker.bindPopup('Точка прогноза').openPopup();
-    map.on('click',e=>{
-      const lat=e.latlng.lat,lon=e.latlng.lng;
-      applySpot({name:'Выбранная точка',lat,lon},{moveMap:false});
-      map.setView([lat,lon],map.getZoom());
-      reverseGeocode(lat,lon);
-    });
-    mapMarker.on('dragend',()=>{
-      const pos=mapMarker.getLatLng();
-      applySpot({name:'Выбранная точка',lat:pos.lat,lon:pos.lng},{moveMap:false});
-      reverseGeocode(pos.lat,pos.lng);
-    });
-    setTimeout(()=>map.invalidateSize(),150);
+    try{
+      if(engine==='eva'){
+        map=EvaMaps.create(holder,{center:[spot.lon,spot.lat],zoom,theme:document.documentElement.dataset.theme==='dark'?'dark':'light',cooperative:true,zoomControl:true});
+        mapEngine='eva';
+        mapMarker=EvaMaps.marker([spot.lon,spot.lat],{draggable:true,color:'#ff6a2b',title:'Точка рыбалки'}).addTo(map);
+        mapMarker.setPopup(EvaMaps.popup().setText('Точка прогноза рыбалки'));
+        map.on('click',e=>{
+          const [lon,lat]=e.lngLat;
+          applySpot({name:'Выбранная точка',lat,lon},{moveMap:false});
+          map.panTo([lon,lat]);
+          reverseGeocode(lat,lon);
+        });
+        mapMarker.on('dragend',()=>{
+          const p=mapMarker.getLngLat();
+          const lon=Array.isArray(p)?p[0]:p.lng, lat=Array.isArray(p)?p[1]:p.lat;
+          applySpot({name:'Выбранная точка',lat,lon},{moveMap:false});
+          reverseGeocode(lat,lon);
+        });
+      } else {
+        map=L.map(holder,{zoomControl:true,scrollWheelZoom:false}).setView([spot.lat,spot.lon],zoom);
+        mapEngine='osm';
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© OpenStreetMap contributors'}).addTo(map);
+        mapMarker=L.marker([spot.lat,spot.lon],{draggable:true}).addTo(map);
+        mapMarker.bindPopup('Точка прогноза');
+        map.on('click',e=>{
+          const lat=e.latlng.lat,lon=e.latlng.lng;
+          applySpot({name:'Выбранная точка',lat,lon},{moveMap:false});
+          map.panTo([lat,lon]);
+          reverseGeocode(lat,lon);
+        });
+        mapMarker.on('dragend',()=>{
+          const pos=mapMarker.getLatLng();
+          applySpot({name:'Выбранная точка',lat:pos.lat,lon:pos.lng},{moveMap:false});
+          reverseGeocode(pos.lat,pos.lng);
+        });
+        setTimeout(()=>map&&mapEngine==='osm'&&map.invalidateSize(),180);
+      }
+    }catch(err){
+      try{destroyMap();}catch(_){}
+      holder.innerHTML='<div class="map-fallback">Не удалось открыть карту: '+String(err.message||'ошибка').slice(0,120)+'</div>';
+      return;
+    }
+  }
+  function refreshVisibleMap(){
+    if(map&&mapEngine==='osm')setTimeout(()=>map&&mapEngine==='osm'&&map.invalidateSize(),120);
   }
 
   for(const key of ['waterType','fishSpecies']){
@@ -1345,7 +1408,7 @@
   $('mapFold').addEventListener('toggle',()=>{
     if($('mapFold').open){
       if(!map)initMap();
-      else setTimeout(()=>map.invalidateSize(),100);
+      else refreshVisibleMap();
     }
   });
   // Настройка применяется ко всему сайту и сохраняется отдельно от архива измерений.
@@ -1363,7 +1426,14 @@
     try {localStorage.setItem('moscow_weather_theme_v1',next);} catch (_) {}
     syncThemeButton();
     render(); // Перерисовываем SVG-график с цветами новой темы.
-    if(map) setTimeout(()=>map.invalidateSize(),120);
+    if(map&&mapEngine==='eva')initMap(map.getZoom());
+    else refreshVisibleMap();
+  });
+  $('mapProvider').addEventListener('change',()=>{
+    mapProvider=$('mapProvider').value==='osm'?'osm':'eva';
+    try{localStorage.setItem(MAP_PROVIDER_KEY,mapProvider);}catch(_){}
+    const zoom=map?map.getZoom():9;
+    if($('mapFold').open)initMap(zoom);
   });
   $('spotSearchBtn').addEventListener('click',searchSpot);
   $('spotSearch').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();searchSpot();}});
@@ -1384,7 +1454,7 @@
   updateSpotLabels();
   points=fromStorage().sort((a,b)=>a[0]-b[0]);
   render();
-  // Карту создаём при первом раскрытии: Leaflet не рассчитает размер скрытого блока.
+  // Карту создаём при первом раскрытии, чтобы скрытый контейнер не мешал инициализации.
   update();
   setInterval(()=>{if(document.visibilityState==='visible')update();},10*60*1000);
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')update();});
