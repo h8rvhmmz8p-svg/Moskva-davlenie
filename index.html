@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101c33">
+  <meta name="description" content="Давление в Москве: график за день, неделю, месяц и история в браузере.">
+  <title>Атмосфера — давление в Москве</title>
+  <style>
+    :root { color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; --ink:#182541; --muted:#64748b; --line:#e5eaf2; --blue:#386aeb; }
+    * { box-sizing:border-box; }
+    html { -webkit-text-size-adjust:100%; }
+    body { margin:0; background:#f3f6fb; color:var(--ink); }
+    button { font:inherit; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+    a {color:#386aeb;}
+    .wrap { max-width:760px; padding:0 18px 38px; margin:auto; }
+    .hero {background:linear-gradient(130deg,#111d36,#1b3159 75%,#25437a);color:#fff; padding: max(31px, env(safe-area-inset-top)) 0 37px; border-radius:0 0 28px 28px;}
+    .hero-inner {max-width:760px;margin:auto;padding:0 24px;}
+    .head {display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .mark {display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:-.025em;font-size:20px;}
+    .mark svg {width:27px;height:27px;}
+    .location {font-size:12px;padding:7px 11px;border:1px solid #ffffff3d;border-radius:24px;color:#d6e2fa;white-space:nowrap}
+    .eyebrow {font-size:11px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;opacity:.7;}
+    .hero-data {margin-top:39px;}
+    .hero-title {font-size:13px;color:#c4d5f2;margin-top:10px;}
+    .value-row {display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:2px 0;}
+    .value {font-size:clamp(66px, 16vw, 104px);font-weight:760;line-height:1.12;letter-spacing:-.075em;font-variant-numeric:tabular-nums;}
+    .unit {font-size:16px;color:#cad7ef;white-space:nowrap;}
+    .hero-bottom {display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between;margin-top:16px;font-size:13px;color:#d7e4fd;}
+    .chip {background:#ffffff1e;border:1px solid #ffffff28;padding:8px 12px;border-radius:18px;font-weight:650;color:white;}
+    .state-dot {display:inline-block;border-radius:50%;width:7px;height:7px;background:#76e2bc;margin-right:7px;}
+    main {margin-top:-13px;position:relative;}
+    .panel {border:1px solid #e8ecf4;background:white;box-shadow:0 12px 30px #1c315d0a;border-radius:20px;padding:20px;margin-top:16px;}
+    .section-top {display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;}
+    h2 {margin:4px 0 0;font-size:19px;line-height:1.3;letter-spacing:-.035em;}
+    .sub {font-size:12px;color:var(--muted);}
+    .refresh {background:#eef3ff;border:1px solid #e5edff;color:#315eca;border-radius:12px;padding:9px 12px;font-weight:700;white-space:nowrap;font-size:12px;}
+    .refresh:disabled {opacity:.5;cursor:wait;}
+    .tabs {display:grid;grid-template-columns:repeat(3,1fr);padding:4px;gap:3px;background:#f1f4f9;border-radius:14px;}
+    .tabs button {padding:11px 7px;background:transparent;color:#66748b;border:0;border-radius:11px;font-size:13px;font-weight:700;}
+    .tabs button[aria-pressed="true"] {background:white;color:#2758d2;box-shadow:0 1px 8px #142b5c15;}
+    .nav {display:flex;justify-content:space-between;align-items:center;gap:12px;margin:19px 0 8px;}
+    .nav button {display:grid;place-items:center;background:#fff;border:1px solid var(--line);color:#35547d;border-radius:12px;width:38px;height:38px;font-size:22px;}
+    .nav button:disabled{opacity:.25;cursor:default}
+    .nav-name {font-size:14px;font-weight:750;text-align:center;}
+    .chart-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-top:19px;font-size:11px;color:#65758b}
+    .legend:before {content:"";display:inline-block;background:#386aeb;border-radius:2px;width:13px;height:3px;vertical-align:3px;margin-right:7px;}
+    .chart-wrap {height:265px;position:relative;margin-left:-7px;margin-right:-7px;}
+    #graph {width:100%;height:100%;overflow:visible;touch-action:pan-y;display:block;}
+    .chart-empty{height:100%;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#738199;font-size:13px;line-height:1.7;padding:18px;}
+    .chart-empty strong{font-size:17px;color:#263651;}
+    .point-label {min-height:20px;text-align:center;color:#64748b;font-size:12px;margin:3px 0 0;}
+    .notice {display:none;background:#fff8e8;color:#855c10;border:1px solid #f7e2ae;border-radius:12px;font-size:13px;line-height:1.5;padding:11px 13px;margin-top:14px;}
+    .notice.show {display:block;}
+    .stats {display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:16px;}
+    .stat {padding:17px;border:1px solid #e8edf5;background:#fff;border-radius:17px;}
+    .stat-title{font-size:12px;color:#74829a;margin-bottom:10px;}
+    .stat-number{font-size:25px;font-weight:750;letter-spacing:-.04em;font-variant-numeric:tabular-nums;}
+    .stat-unit{color:#8b98aa;font-size:11px;margin-left:3px;}
+    .stat-foot{font-size:11px;color:#8491a5;margin-top:7px;}
+    .history {display:flex;flex-direction:column;}
+    .item {display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 0;border-top:1px solid #edf1f6;}
+    .item:first-child{border-top:0;}
+    .item-date{font-weight:650;font-size:13px;}
+    .item-time{font-size:11px;color:#8a96a9;margin-top:5px;}
+    .item-val{font-weight:750;font-size:17px;font-variant-numeric:tabular-nums;white-space:nowrap;}
+    .item-val small {font-size:10px;font-weight:500;color:#8997a9;margin-left:3px;}
+    .text-button {border:0;background:transparent;color:#3666df;font-weight:750;font-size:12px;padding:10px;}
+    .footer {font-size:12px;color:#77849b;line-height:1.65;margin:19px 2px;text-align:center;}
+    .footer strong {color:#596981;}
+    .source {font-size:12px;color:#6d7a91;line-height:1.5;margin-top:15px;}
+    @media (min-width:610px) { .wrap{padding-left:25px;padding-right:25px}.hero-inner{padding-left:30px;padding-right:30px}.panel{padding:25px}.chart-wrap{height:290px}.stats{grid-template-columns:repeat(4,1fr);} }
+    @media (max-width:350px){.mark{font-size:17px}.location{font-size:11px}.wrap{padding-left:12px;padding-right:12px}.panel{padding:15px}.unit{font-size:13px}}
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-inner">
+      <div class="head">
+        <div class="mark">
+          <svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M6 19a7 7 0 0 1 7-7 9 9 0 0 1 17 4 6 6 0 0 1-6 11H11a7 7 0 0 1-5-8Z" stroke="#cde1ff" stroke-width="2.4" stroke-linejoin="round"/><path d="M10 21h13M13 25h7" stroke="#93b8ff" stroke-width="2.5" stroke-linecap="round"/></svg>
+          Атмосфера
+        </div>
+        <div class="location">📍 Москва · МСК</div>
+      </div>
+      <div class="hero-data">
+        <div class="eyebrow">Атмосферное давление</div>
+        <div class="hero-title">Давление у поверхности земли</div>
+        <div class="value-row"><div class="value" id="pressureNow">—</div><div class="unit">мм рт. ст.</div></div>
+        <div class="hero-bottom">
+          <div class="chip" id="trend">Проверяем данные…</div>
+          <div id="timeNow"><span class="state-dot"></span>Загрузка</div>
+        </div>
+      </div>
+    </div>
+  </header>
+  <main class="wrap">
+    <section class="panel" aria-labelledby="chartTitle">
+      <div class="section-top">
+        <div><div class="eyebrow" style="color:#8a97aa;opacity:1">АРХИВ И ГРАФИК</div><h2 id="chartTitle">Изменение давления</h2></div>
+        <button class="refresh" id="reload" type="button">↻ Обновить</button>
+      </div>
+      <div class="tabs" role="group" aria-label="Период">
+        <button type="button" data-period="day" aria-pressed="false">День</button>
+        <button type="button" data-period="week" aria-pressed="true">Неделя</button>
+        <button type="button" data-period="month" aria-pressed="false">Месяц</button>
+      </div>
+      <div class="nav"><button type="button" id="prev" aria-label="Предыдущий период">‹</button><div id="periodTitle" class="nav-name">—</div><button type="button" id="next" aria-label="Следующий период">›</button></div>
+      <div class="chart-head"><span class="legend">Давление, мм рт. ст.</span><span id="count">—</span></div>
+      <div class="chart-wrap"><svg id="graph" role="img" aria-label="График атмосферного давления"></svg><div id="emptyChart" class="chart-empty"><strong>Нет данных за этот период</strong><span>Для старых дат попробуйте обновление или другой период.</span></div></div>
+      <div class="point-label" id="pointLabel">Коснитесь графика, чтобы узнать значение</div>
+      <div id="notice" class="notice" role="status"></div>
+      <div class="source">Источник этой версии: <a href="https://open-meteo.com/en/docs" target="_blank" rel="noopener noreferrer">Open-Meteo</a>. Модельные данные, не фактические замеры Гидрометцентра. Часовые значения могут уточняться при повторной загрузке.</div>
+    </section>
+
+    <section class="stats" aria-label="Статистика за выбранный период">
+      <div class="stat"><div class="stat-title">↗ Максимум</div><div><span class="stat-number" id="statMax">—</span><span class="stat-unit">мм</span></div><div class="stat-foot" id="statMaxTime">За период</div></div>
+      <div class="stat"><div class="stat-title">↘ Минимум</div><div><span class="stat-number" id="statMin">—</span><span class="stat-unit">мм</span></div><div class="stat-foot" id="statMinTime">За период</div></div>
+      <div class="stat"><div class="stat-title">≈ Среднее</div><div><span class="stat-number" id="statMean">—</span><span class="stat-unit">мм</span></div><div class="stat-foot">За период</div></div>
+      <div class="stat"><div class="stat-title">↕ Изменение</div><div><span class="stat-number" id="statChange">—</span><span class="stat-unit">мм</span></div><div class="stat-foot">От начала до конца</div></div>
+    </section>
+
+    <section class="panel" aria-labelledby="archiveTitle">
+      <div class="section-top"><div><div class="eyebrow" style="color:#8a97aa;opacity:1">ЖУРНАЛ</div><h2 id="archiveTitle">История показаний</h2></div><button id="export" class="text-button" type="button">↓ CSV</button></div>
+      <div id="history" class="history"><div class="sub">Загрузка данных…</div></div>
+      <div class="sub" style="margin-top:14px" id="stored">Локальный архив пока пуст.</div>
+    </section>
+    <footer class="footer"><strong>История автоматически сохраняется в браузере на этом устройстве.</strong> Когда вы снова откроете страницу, данные за последние 92 дня будут загружены заново, чтобы заполнить пропуски. Данные могут исчезнуть при очистке Safari. Для общего архива на нескольких телефонах нужен сервер или облачная база.</footer>
+  </main>
+<script>
+(() => {
+  'use strict';
+  const MSK = 3 * 60 * 60 * 1000;
+  const DAY = 24 * 60 * 60 * 1000;
+  const HPA_MM = 0.750061683;
+  const STORAGE = 'moscow_pressure_open_meteo_history_v1';
+  const LAT = '55.7558'; const LON = '37.6176';
+  const $ = (id) => document.getElementById(id);
+  const number = (x) => Number(x).toFixed(1).replace('.', ',');
+  const dates = new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', day:'numeric', month:'long' });
+  const dateShort = new Intl.DateTimeFormat('ru-RU', { timeZone:'Europe/Moscow', day:'numeric', month:'short' });
+  const timeFormat = new Intl.DateTimeFormat('ru-RU', { timeZone:'Europe/Moscow', hour:'2-digit', minute:'2-digit', hourCycle:'h23' });
+  let period = 'week', offset = 0, points = [], isUpdating = false, selected = null;
+  let archivePending = new Set(), archiveDone = new Set(), savingAvailable = true;
+
+  function fromStorage() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(STORAGE) || '[]');
+      if (!Array.isArray(raw)) return [];
+      return raw.filter(p => Array.isArray(p) && Number.isFinite(p[0]) && Number.isFinite(p[1]) && p[1] > 600 && p[1] < 850);
+    } catch (e) { savingAvailable = false; return []; }
+  }
+  function save() {
+    try { localStorage.setItem(STORAGE, JSON.stringify(points)); savingAvailable = true; }
+    catch (e) { savingAvailable = false; showNotice('В Safari недоступно постоянное сохранение. Откройте страницу по HTTPS и проверьте настройки приватного режима.'); }
+  }
+  function merge(incoming) {
+    if (!incoming.length) return;
+    const map = new Map(points.map(p => [p[0], p[1]]));
+    incoming.forEach(([ms,mm]) => {
+      if (Number.isFinite(ms) && Number.isFinite(mm) && mm > 600 && mm < 850 && ms <= Date.now() + 5 * 60 * 1000) {
+        map.set(ms, Math.round(mm * 100) / 100);
+      }
+    });
+    points = [...map.entries()].sort((a,b) => a[0]-b[0]).slice(-25000);
+    save();
+    render();
+  }
+  function showNotice(text) { const n=$('notice'); n.textContent=text;n.classList.add('show'); }
+  function clearNotice() { const n=$('notice');n.textContent='';n.classList.remove('show'); }
+  async function loadJSON(url) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
+    try {
+      const response = await fetch(url, {signal: controller.signal, cache:'no-store'});
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      const data = await response.json();
+      if (data.error) throw new Error(data.reason || 'Ошибка погодного API');
+      return data;
+    } finally { clearTimeout(timer); }
+  }
+  function extractHourly(data) {
+    const ts = data?.hourly?.time, vals = data?.hourly?.surface_pressure;
+    if (!Array.isArray(ts) || !Array.isArray(vals)) throw new Error('Сервис не прислал давление');
+    const result = [];
+    for(let i=0;i<Math.min(ts.length,vals.length);i++) {
+      if (typeof vals[i] === 'number' && Number.isFinite(ts[i])) result.push([ts[i]*1000, vals[i]*HPA_MM]);
+    }
+    return result;
+  }
+  async function update() {
+    if (isUpdating) return;
+    isUpdating = true; $('reload').disabled = true; $('reload').textContent = 'Загрузка…';
+    try {
+      const url='https://api.open-meteo.com/v1/forecast?latitude='+LAT+'&longitude='+LON+'&hourly=surface_pressure&current=surface_pressure&past_days=92&forecast_days=1&timezone=Europe%2FMoscow&timeformat=unixtime';
+      const data = await loadJSON(url);
+      const fresh = extractHourly(data);
+      if (Number.isFinite(data?.current?.time) && Number.isFinite(data?.current?.surface_pressure)) {
+        fresh.push([data.current.time*1000, data.current.surface_pressure*HPA_MM]);
+      }
+      if (!fresh.length) throw new Error('Пришёл пустой ответ');
+      merge(fresh);
+      clearNotice();
+      // Текущий период может быть далеко в прошлом.
+      maybeArchive();
+    } catch (err) {
+      showNotice('Не удалось обновить данные (' + (err.name === 'AbortError' ? 'превышено время ожидания' : err.message) + '). Если архив есть, он остаётся доступен. Для сети нужен доступ к api.open-meteo.com.');
+      render();
+    } finally { isUpdating=false;$('reload').disabled=false;$('reload').textContent='↻ Обновить'; }
+  }
+  function moscowDayTime(ms) {
+    const d = new Date(ms + MSK);
+    return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - MSK;
+  }
+  function getPeriodRange() {
+    const today = moscowDayTime(Date.now());
+    if(period==='day') { const start=today+offset*DAY;return [start,start+DAY]; }
+    if(period==='week') {
+      const dow=(new Date(today+MSK).getUTCDay()+6)%7;
+      const start=today - dow*DAY + offset*7*DAY;return [start,start+7*DAY];
+    }
+    const d = new Date(today+MSK);
+    const start=Date.UTC(d.getUTCFullYear(),d.getUTCMonth()+offset,1)-MSK;
+    const end=Date.UTC(d.getUTCFullYear(),d.getUTCMonth()+offset+1,1)-MSK;
+    return [start,end];
+  }
+  function isoDate(ms) { return new Date(ms+MSK).toISOString().slice(0,10); }
+  function rangeTitle([start,end]) {
+    if(period==='day') return dates.format(start) + ', ' + new Date(start+MSK).getUTCFullYear();
+    if(period==='week') return dateShort.format(start)+' — '+dateShort.format(end-1);
+    const y=new Date(start+MSK);
+    return new Intl.DateTimeFormat('ru-RU', {timeZone:'Europe/Moscow',month:'long',year:'numeric'}).format(start).replace(/^./, c=>c.toUpperCase());
+  }
+  function periodPoints(range) { return points.filter(p=>p[0]>=range[0] && p[0]<range[1] && p[0]<=Date.now()); }
+  function showCurrent() {
+    const latest = [...points].reverse().find(p => p[0] <= Date.now());
+    if(!latest) { $('pressureNow').textContent='—';$('trend').textContent='Нет данных';$('timeNow').textContent='Ожидание обновления';return; }
+    $('pressureNow').textContent=number(latest[1]);
+    $('timeNow').textContent='На '+dateShort.format(latest[0])+', '+timeFormat.format(latest[0])+' МСК';
+    const cutoff = latest[0]-3*60*60*1000;
+    const past = [...points].reverse().find(p=>p[0]<=cutoff);
+    if(past) {
+      const diff=latest[1]-past[1];
+      $('trend').textContent=(Math.abs(diff)<0.25?'→ Стабильно': diff>0?'↗ Рост':'↘ Снижение')+' · '+(diff>0?'+':'')+number(diff)+' мм / 3 ч';
+    } else $('trend').textContent='Нет данных для сравнения';
+  }
+  function setStat(id,value) { $(id).textContent = value === null ? '—' : number(value); }
+  function showStats(filtered) {
+    if(!filtered.length) { ['statMax','statMin','statMean','statChange'].forEach(id=>setStat(id,null));$('statMaxTime').textContent='За период';$('statMinTime').textContent='За период';return; }
+    const max=filtered.reduce((a,b)=>b[1]>a[1]?b:a);
+    const min=filtered.reduce((a,b)=>b[1]<a[1]?b:a);
+    const mean=filtered.reduce((s,p)=>s+p[1],0)/filtered.length;
+    const change=filtered.at(-1)[1]-filtered[0][1];
+    setStat('statMax',max[1]);setStat('statMin',min[1]);setStat('statMean',mean);
+    $('statChange').textContent=(change>0?'+':'')+number(change);
+    $('statMaxTime').textContent=dateShort.format(max[0])+' · '+timeFormat.format(max[0]);
+    $('statMinTime').textContent=dateShort.format(min[0])+' · '+timeFormat.format(min[0]);
+  }
+  function drawChart(filtered, range) {
+    const svg=$('graph'),empty=$('emptyChart');
+    svg.replaceChildren();
+    if(!filtered.length) {svg.style.display='none';empty.style.display='flex';$('pointLabel').textContent='';return;}
+    svg.style.display='block';empty.style.display='none';
+    const W=390,H=250,l=48,r=14,t=22,b=32;
+    const vals=filtered.map(p=>p[1]);
+    let lo=Math.floor(Math.min(...vals)-1),hi=Math.ceil(Math.max(...vals)+1);
+    if(hi-lo<5){const m=(hi+lo)/2;lo=m-2.5;hi=m+2.5;}
+    const x=ms=>l+(ms-range[0])/(range[1]-range[0])*(W-l-r);
+    const y=mm=>t+(hi-mm)/(hi-lo)*(H-t-b);
+    const NS='http://www.w3.org/2000/svg';
+    const append=(tag,attrs,text)=>{const n=document.createElementNS(NS,tag);Object.entries(attrs||{}).forEach(([k,v])=>n.setAttribute(k,String(v)));if(text!==undefined)n.textContent=text;svg.appendChild(n);return n;};
+    svg.setAttribute('viewBox',`0 0 ${W} ${H}`);
+    for(let i=0;i<5;i++) {
+      const yy=t+(H-t-b)*i/4, mm=hi-(hi-lo)*i/4;
+      append('line',{x1:l,y1:yy,x2:W-r,y2:yy,stroke:'#e9edf4','stroke-dasharray':'3 4'});
+      append('text',{x:l-8,y:yy+4,fill:'#98a4b5','font-size':'11','text-anchor':'end'},number(mm));
+    }
+    for(let i=0;i<4;i++) {
+      const ms=range[0]+(range[1]-range[0])*i/3;
+      const label=period==='day'?timeFormat.format(ms):dateShort.format(ms);
+      append('text',{x:l+(W-l-r)*i/3,y:H-8,fill:'#8a98ab','font-size':'10','text-anchor':i===0?'start':i===3?'end':'middle'},label);
+    }
+    const d=filtered.map((p,i)=>(i===0?'M':'L')+x(p[0]).toFixed(2)+' '+y(p[1]).toFixed(2)).join(' ');
+    const baseline=y(lo);
+    const fillPath=d+' L '+x(filtered.at(-1)[0]).toFixed(2)+' '+baseline+' L '+x(filtered[0][0]).toFixed(2)+' '+baseline+' Z';
+    const defs=document.createElementNS(NS,'defs');
+    defs.innerHTML='<linearGradient id="pressureFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#386aeb" stop-opacity=".20"/><stop offset="100%" stop-color="#386aeb" stop-opacity="0"/></linearGradient>';
+    svg.appendChild(defs);
+    append('path',{d:fillPath,fill:'url(#pressureFill)'});
+    append('path',{d,stroke:'#386aeb','stroke-width':'2.7',fill:'none','stroke-linecap':'round','stroke-linejoin':'round'});
+    const current=filtered.at(-1);
+    append('circle',{cx:x(current[0]),cy:y(current[1]),r:4.5,fill:'#386aeb',stroke:'#fff','stroke-width':'2'});
+    function pick(clientX) {
+      const rect=svg.getBoundingClientRect();
+      const sx=(clientX-rect.left)/rect.width*W;
+      const ms=range[0]+(Math.max(l,Math.min(W-r,sx))-l)/(W-l-r)*(range[1]-range[0]);
+      let closest=filtered[0],dist=Infinity;
+      for(const p of filtered){const d=Math.abs(p[0]-ms);if(d<dist){dist=d;closest=p;}}
+      $('pointLabel').textContent=dateShort.format(closest[0])+' · '+timeFormat.format(closest[0])+' МСК — '+number(closest[1])+' мм рт. ст.';
+    }
+    svg.onpointerdown=e=>pick(e.clientX);
+    svg.onpointermove=e=>{if(e.buttons)pick(e.clientX)};
+    if(selected && filtered.some(p=>p[0]===selected[0])) $('pointLabel').textContent=dateShort.format(selected[0])+' · '+timeFormat.format(selected[0])+' — '+number(selected[1])+' мм';
+    else $('pointLabel').textContent='Коснитесь графика, чтобы узнать значение';
+  }
+  function showHistory(filtered) {
+    const hist=$('history');hist.replaceChildren();
+    if(!filtered.length) {const p=document.createElement('div');p.className='sub';p.textContent='В этом периоде нет значений.';hist.appendChild(p);return;}
+    for(const p of filtered.slice(-9).reverse()) {
+      const line=document.createElement('div');line.className='item';
+      const date=document.createElement('div');const head=document.createElement('div');head.className='item-date';head.textContent=dates.format(p[0]);
+      const tm=document.createElement('div');tm.className='item-time';tm.textContent=timeFormat.format(p[0])+' МСК';date.append(head,tm);
+      const val=document.createElement('div');val.className='item-val';val.textContent=number(p[1]);const unit=document.createElement('small');unit.textContent='мм';val.append(unit);
+      line.append(date,val);hist.append(line);
+    }
+  }
+  function render() {
+    const range=getPeriodRange();const filtered=periodPoints(range);
+    $('periodTitle').textContent=rangeTitle(range);
+    $('next').disabled=offset>=0;
+    $('count').textContent=filtered.length+' знач.';
+    showCurrent();showStats(filtered);drawChart(filtered,range);showHistory(filtered);
+    $('stored').textContent=points.length+' значений сохранено'+(savingAvailable?' в браузере':' только до закрытия страницы')+'.';
+    document.querySelectorAll('[data-period]').forEach(btn=>btn.setAttribute('aria-pressed', String(btn.dataset.period===period)));
+  }
+  async function maybeArchive() {
+    const [start,end]=getPeriodRange();
+    // Прошлые месяцы старше 92 дней доступны из отдельного исторического API.
+    if(end > Date.now()-91*DAY || start>=Date.now() || points.some(p=>p[0]>=start && p[0]<end)) return;
+    const key=isoDate(start)+'_'+isoDate(end-1);
+    if(archivePending.has(key)||archiveDone.has(key)) return;
+    archivePending.add(key);
+    try {
+      const url='https://archive-api.open-meteo.com/v1/archive?latitude='+LAT+'&longitude='+LON+'&hourly=surface_pressure&start_date='+isoDate(start)+'&end_date='+isoDate(end-1)+'&timezone=Europe%2FMoscow&timeformat=unixtime';
+      const data=await loadJSON(url);
+      merge(extractHourly(data));archiveDone.add(key);
+    } catch(err) {showNotice('Не удалось загрузить старый период: '+err.message+'. Попробуйте обновить страницу позднее.');}
+    finally {archivePending.delete(key);}
+  }
+  document.querySelectorAll('[data-period]').forEach(btn=>btn.addEventListener('click',()=>{period=btn.dataset.period;offset=0;selected=null;render();maybeArchive();}));
+  $('prev').addEventListener('click',()=>{offset--;selected=null;render();maybeArchive();});
+  $('next').addEventListener('click',()=>{if(offset<0){offset++;selected=null;render();maybeArchive();}});
+  $('reload').addEventListener('click',update);
+  $('export').addEventListener('click',()=>{
+    const filtered=periodPoints(getPeriodRange());
+    if(!filtered.length){showNotice('За выбранный период нечего выгружать.');return;}
+    const csv='\uFEFFДата и время (Москва);Давление (мм рт. ст.);Источник\r\n'+filtered.map(p=>[isoDate(p[0])+' '+timeFormat.format(p[0]), number(p[1]),'Open-Meteo (модель)'].join(';')).join('\r\n');
+    const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+    const url=URL.createObjectURL(blob), a=document.createElement('a');
+    a.href=url;a.download='davlenie-moskva-'+isoDate(getPeriodRange()[0])+'.csv';
+    document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  });
+  points=fromStorage().sort((a,b)=>a[0]-b[0]);
+  render();update();
+  setInterval(()=>{if(document.visibilityState==='visible')update();},10*60*1000);
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')update();});
+})();
+</script>
+</body>
+</html>
