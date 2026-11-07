@@ -280,6 +280,53 @@
     @media (min-width:610px){.now-grid{grid-template-columns:repeat(2,minmax(0,1fr));}.moon-card{grid-column:auto;}.moon-card .now-value{font-size:23px;}.moon-illustration{font-size:48px;}}
     @media (max-width:370px){.air-weather-main .now-value{font-size:40px;}.moon-card .now-value{font-size:17px;}}
 
+
+    /* Фаза Луны: широкая карточка на всю строку, включая большие экраны. */
+    .now-grid > .moon-card {
+      grid-column:1 / -1;
+      display:flex;
+      flex-direction:row;
+      align-items:center;
+      justify-content:space-between;
+      gap:20px;
+      padding:21px 24px;
+      min-height:145px;
+      background:linear-gradient(112deg,var(--panel-bg) 0%,#edf2ff 100%);
+    }
+    .moon-card > div:first-child { min-width:0; flex:1 1 auto; }
+    .moon-card .now-value {
+      font-size:clamp(23px,4vw,30px);
+      line-height:1.22;
+      letter-spacing:-.035em;
+      margin-top:12px;
+      overflow-wrap:normal;
+    }
+    .moon-card .now-caption { margin-top:5px; }
+    .moon-card .moon-illustration {
+      display:grid;
+      place-items:center;
+      flex:0 0 102px;
+      width:102px;
+      height:102px;
+      align-self:center;
+      font-size:65px;
+      line-height:1;
+      border-radius:50%;
+      background:radial-gradient(circle at 50% 50%,rgba(168,186,241,.28) 0%,rgba(187,203,245,.15) 62%,transparent 73%);
+      filter:drop-shadow(0 4px 9px #47556919);
+    }
+    html[data-theme="dark"] .now-grid > .moon-card {
+      background:linear-gradient(112deg,#182741 0%,#263b60 100%);
+    }
+    html[data-theme="dark"] .moon-card .moon-illustration {
+      background:radial-gradient(circle,rgba(122,157,226,.26) 0%,rgba(95,132,208,.11) 67%,transparent 73%);
+    }
+    @media(max-width:370px) {
+      .now-grid > .moon-card {padding:16px 16px;gap:8px;min-height:132px;}
+      .moon-card .now-value {font-size:21px;}
+      .moon-card .moon-illustration {width:78px;height:78px;flex-basis:78px;font-size:53px;}
+    }
+
     /* Солнечный календарь для выбранной точки. */
     .sun-panel{margin-top:16px;padding:19px 18px 17px;overflow:hidden;}
     .sun-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
