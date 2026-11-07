@@ -163,6 +163,34 @@
     .fish-field label{font-size:12px;font-weight:720;color:var(--muted);}
     .fish-field select{width:100%;min-width:0;min-height:47px;padding:0 31px 0 12px;border:1px solid var(--line);border-radius:12px;background:var(--panel-bg);color:var(--ink);font:650 14px -apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238596ae' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;}
     .fish-field select:focus-visible{outline:3px solid #90b3f4;outline-offset:2px;}
+
+    /* Погодный индекс: это не статистическая вероятность улова. */
+    .bite-panel{margin:0 0 19px;padding:16px;border:1px solid var(--line);border-radius:17px;background:linear-gradient(135deg,var(--fish-tint),var(--panel-bg) 82%);}
+    .bite-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:13px;}
+    .bite-heading h3{margin:4px 0 0;font-size:17px;letter-spacing:-.025em;line-height:1.3;}
+    .bite-kicker{font-size:10px;letter-spacing:.09em;font-weight:800;color:var(--fish-accent);text-transform:uppercase;}
+    .bite-badge{font-size:10px;line-height:1.35;font-weight:720;text-align:right;color:var(--fish-accent);border:1px solid var(--line);border-radius:20px;background:var(--panel-bg);padding:6px 9px;flex-shrink:0;}
+    .bite-list{display:grid;grid-template-columns:1fr;gap:9px;}
+    .bite-card{display:flex;align-items:center;gap:13px;min-width:0;border:1px solid var(--line);background:var(--panel-bg);border-radius:13px;padding:12px;}
+    .bite-meter{--score:0%;--score-color:#6f92bd;width:72px;height:72px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;position:relative;background:conic-gradient(var(--score-color) var(--score),var(--line) 0);}
+    .bite-meter:before{content:"";position:absolute;inset:7px;border-radius:50%;background:var(--panel-bg);}
+    .bite-meter-value{position:relative;color:var(--ink);font-size:21px;letter-spacing:-.05em;line-height:1;font-weight:820;font-variant-numeric:tabular-nums;}
+    .bite-meter-value small{font-size:12px;font-weight:650;margin-left:1px;}
+    .bite-meter.is-good{--score-color:#23967d;}
+    .bite-meter.is-mid{--score-color:#527ce2;}
+    .bite-meter.is-low{--score-color:#b99040;}
+    html[data-theme="dark"] .bite-meter.is-good{--score-color:#5cdbad;}
+    html[data-theme="dark"] .bite-meter.is-mid{--score-color:#98baff;}
+    html[data-theme="dark"] .bite-meter.is-low{--score-color:#e9c07a;}
+    .bite-card-body{min-width:0;flex:1;}
+    .bite-card-name{font-size:14px;font-weight:800;}
+    .bite-card-grade{font-size:12px;color:var(--fish-accent);font-weight:750;margin-top:4px;}
+    .bite-card-detail{font-size:11px;color:var(--muted);line-height:1.45;margin:6px 0 0;}
+    .bite-explain{font-size:11px;line-height:1.55;color:var(--muted);margin:12px 2px 0;}
+    .bite-warning{font-size:11px;line-height:1.55;color:var(--muted);margin:11px 1px 0;padding-top:9px;border-top:1px solid var(--line);}
+    @media(min-width:620px){.bite-list.is-multi{grid-template-columns:repeat(3,minmax(0,1fr));}.bite-list.is-multi .bite-card{flex-direction:column;align-items:flex-start;}.bite-list.is-multi .bite-meter{align-self:center;}.bite-list.is-multi .bite-card-body{width:100%;}}
+    @media(max-width:360px){.bite-panel{padding:12px;}.bite-heading{flex-wrap:wrap;}.bite-badge{text-align:left;}.bite-meter{width:65px;height:65px;}.bite-meter-value{font-size:19px;}}
+
     .fish-context{display:grid;gap:9px;margin:0 0 19px;}
     .fish-weather-card{background:var(--fish-tint);border:1px solid var(--line);border-radius:14px;padding:12px 13px;display:flex;gap:11px;align-items:flex-start;}
     .fish-weather-icon{font-size:19px;line-height:1.3;flex-shrink:0;}
@@ -270,6 +298,12 @@
           <option value="all">Все хищники</option><option value="pike">Щука</option><option value="zander">Судак</option><option value="perch">Окунь</option>
         </select></div>
       </div>
+      <section class="bite-panel" aria-label="Оценка условий для клёва">
+        <div class="bite-heading"><div><div class="bite-kicker">🎯 Погодный индекс · Москва</div><h3>Условия для клёва хищника</h3></div><span class="bite-badge" id="biteFreshness">Проверяем погоду…</span></div>
+        <div class="bite-list" id="biteScores" aria-live="polite" role="list"></div>
+        <p class="bite-explain" id="biteExplanation">Оценка появится после загрузки свежих погодных данных.</p>
+        <p class="bite-warning"><strong>Важно:</strong> проценты — условный индекс благоприятности погоды (0–100), <strong>не вероятность поклёвки или поимки</strong>. Метод не обучен на реальных уловах. Для точного прогноза нужны данные конкретного водоёма и температура воды.</p>
+      </section>
       <div class="fish-context" aria-live="polite">
         <div class="fish-weather-card"><span class="fish-weather-icon" aria-hidden="true">🧭</span><div><strong>Ветер и выбор берега</strong><span id="fishWindAdvice">Ожидаем данные о ветре…</span></div></div>
         <div class="fish-weather-card fish-weather-minor"><span class="fish-weather-icon" aria-hidden="true">◷</span><div><strong>Погода и сезон</strong><span id="fishWeatherAdvice">Рекомендации уточнятся после загрузки погоды.</span></div></div>
@@ -277,7 +311,7 @@
       <div class="fish-list-head"><h3>Точки для первого поиска</h3><small id="fishBasis">По особенностям водоёма</small></div>
       <div class="fish-spots" id="fishSpots" role="list" aria-live="polite"></div>
       <div class="fish-caution" id="fishCaution">Это не обнаружение рыбы: точное место зависит от глубин, температуры воды, течения, укрытий и наличия малька. Погода берётся для Москвы, а не для выбранного водоёма.</div>
-      <details class="fish-method"><summary>Как понимать этот прогноз?</summary><p>Подсказки основаны на типичных местах обитания и охоты щуки, судака и окуня. Ветер помогает предположить, где волна сгоняет корм, но не показывает положение рыбы. Давление, влажность и Луна не используются как «точный прогноз клёва». На месте проверяйте рельеф, течение, кормовую рыбу и правила рыболовства.</p></details>
+      <details class="fish-method"><summary>Как рассчитывается процент?</summary><p>Это эвристический индекс, а не измеренная вероятность. Базовая оценка — 50 баллов. Учитываются скорость ветра (особенно на открытой воде), примерное время суток для выбранного хищника и сезон. Для щуки есть небольшая поправка на фазу Луны; резкий перепад давления служит лишь слабым маркером смены погоды. Влажность показываем для справки — её самостоятельное влияние не доказано. Полученный балл ограничен диапазоном 20–80, поскольку температура воды, течение, рельеф, рыболовная нагрузка и наличие рыбы неизвестны. Данные берутся для Москвы, а не для конкретной точки ловли. На воде учитывайте безопасность и местные правила.</p></details>
     </section>
     <section class="panel" aria-labelledby="chartTitle">
       <div class="section-top">
@@ -595,8 +629,101 @@
     if(speed>7)return 'Ветер с '+from+' ('+number(speed)+' м/с). На открытой воде может быть опасно; начните с защищённых заливов и сторон мысов.';
     return 'Ветер с '+from+' ('+number(speed)+' м/с) гонит волну к '+where+' берегу. Проверьте у него бровки и входы в заливы, если там есть малёк.';
   }
+
+  // Эвристический индекс условий. 50 = нейтрально, 0–100 — шкала, а НЕ вероятность улова.
+  // Не превращаем отсутствующие или старые метеоданные в вымышленные проценты.
+  const BITE_RECENT_MS=6*60*60*1000;
+  const BITE_LABELS={pike:'Щука',zander:'Судак',perch:'Окунь'};
+  function biteSnapshot(now){
+    const last=points.slice().reverse().find(p=>p[0]<=now&&now-p[0]<=BITE_RECENT_MS&&Number.isFinite(p[1])&&Number.isFinite(p[3]));
+    if(!last)return null;
+    const old=points.slice().reverse().find(p=>p[0]<=last[0]-2.5*60*60*1000&&p[0]>=last[0]-4.5*60*60*1000);
+    return {last,delta:old?last[1]-old[1]:null};
+  }
+  function biteGrade(v){
+    return v>=66?'Условия сравнительно благоприятные':v>=46?'Условия умеренные':'Условия менее благоприятные';
+  }
+  function biteSpeciesScore(species,water,snapshot,now){
+    if(!snapshot)return null;
+    const speed=snapshot.last[3];
+    // В реках течение обычно важнее ветра, а в малых прудах волна часто слаба.
+    const exposure={river:0.35,pond:0.55,lake:1,reservoir:1}[water]??1;
+    let pointsScore=50;
+    const notes=[];
+    let windBonus=0;
+    if(speed<1.5){windBonus=species==='zander'?2:-4;notes.push('почти штиль');}
+    else if(speed<3){windBonus=species==='zander'?3:species==='perch'?4:2;notes.push('лёгкий ветер');}
+    else if(speed<=6){windBonus=species==='pike'?10:species==='perch'?7:2;notes.push('умеренный ветер');}
+    else if(speed<=9){windBonus=species==='pike'?6:species==='perch'?1:-3;notes.push('заметный ветер');}
+    else {windBonus=-10;notes.push('сильный ветер: соблюдайте осторожность');}
+    pointsScore+=Math.round(windBonus*exposure);
+    const hour=new Date(now+MSK).getUTCHours(),month=new Date(now+MSK).getUTCMonth()+1;
+    const early=hour>=5&&hour<=8,evening=hour>=17&&hour<=21,night=hour>=22||hour<5;
+    if(species==='pike'){
+      if(early||evening){pointsScore+=7;notes.push('время возможного выхода на кормёжку');}
+      else if(night){pointsScore-=4;notes.push('ночное время');}
+      if(month>=9&&month<=11){pointsScore+=3;notes.push('осенний сезон');}
+      if(month===6||month===7||month===8)pointsScore-=2;
+      // Для щуки в отдельных исследованиях обнаружены эффекты фазы Луны; вес малый.
+      const phase=moonPhase(now).phase;
+      if(phase<=0.085||phase>=0.915||Math.abs(phase-0.5)<0.085){pointsScore+=3;notes.push('фаза Луны (слабая поправка)');}
+    }else if(species==='zander'){
+      if(night||evening){pointsScore+=8;notes.push('вечер или ночь');}
+      else if(early){pointsScore+=4;notes.push('раннее утро');}
+      else{pointsScore-=2;notes.push('дневное время');}
+      if(month>=6&&month<=8&&night)pointsScore+=2;
+    }else{
+      if(early||evening){pointsScore+=6;notes.push('утро или вечер');}
+      else if(night){pointsScore-=6;notes.push('ночное время');}
+      else{pointsScore+=2;notes.push('светлое время');}
+    }
+    // Влияние собственно атмосферного давления на улов не установлено;
+    // сильная перестройка трактуется лишь как индикатор смены погодной ситуации.
+    if(Number.isFinite(snapshot.delta)&&Math.abs(snapshot.delta)>=2.5){
+      pointsScore-=2;notes.push('резкая смена погоды');
+    }
+    // Влажность воздуха не задаёт отдельную поправку: надёжной калибровки нет.
+    return {value:Math.max(20,Math.min(80,Math.round(pointsScore))),notes};
+  }
+  function renderBiteIndex(){
+    const box=$('biteScores'),caption=$('biteExplanation'),stamp=$('biteFreshness');
+    const now=Date.now(),snapshot=biteSnapshot(now);
+    const species=fishPrefs.species==='all'?['pike','zander','perch']:[fishPrefs.species];
+    box.classList.toggle('is-multi',species.length>1);
+    box.replaceChildren();
+    stamp.textContent=snapshot?'Данные: '+timeFormat.format(snapshot.last[0])+' МСК':'Нет свежей погоды';
+    for(const kind of species){
+      const result=biteSpeciesScore(kind,fishPrefs.water,snapshot,now);
+      const card=document.createElement('div');card.className='bite-card';card.setAttribute('role','listitem');
+      const meter=document.createElement('div');meter.className='bite-meter';
+      const value=document.createElement('div');value.className='bite-meter-value';
+      if(result){
+        meter.style.setProperty('--score',result.value+'%');
+        meter.classList.add(result.value>=66?'is-good':result.value>=46?'is-mid':'is-low');
+        value.textContent=result.value;
+        const perc=document.createElement('small');perc.textContent='%';value.append(perc);
+        meter.setAttribute('aria-label','Индекс условий: '+result.value+' из 100');
+      }else{
+        value.textContent='—';meter.setAttribute('aria-label','Оценка недоступна');
+      }
+      meter.append(value);
+      const body=document.createElement('div');body.className='bite-card-body';
+      const name=document.createElement('div');name.className='bite-card-name';name.textContent=BITE_LABELS[kind];
+      const grade=document.createElement('div');grade.className='bite-card-grade';grade.textContent=result?biteGrade(result.value):'Ждём свежих данных';
+      const detail=document.createElement('p');detail.className='bite-card-detail';
+      detail.textContent=result?result.notes.slice(0,3).join(' · '):'Прогноз не рассчитывается по устаревшей истории.';
+      body.append(name,grade,detail);card.append(meter,body);box.append(card);
+    }
+    caption.textContent=snapshot?
+      'Индекс на сейчас, по погоде Москвы. Ветер '+number(snapshot.last[3])+' м/с; '+
+        (Number.isFinite(snapshot.delta)?'изменение давления '+(snapshot.delta>0?'+':'')+number(snapshot.delta)+' мм примерно за 3 ч. ':'тренд давления недоступен. ')+
+        'Влажность и Луна показаны вверху; влажность не влияет на баллы. Выбор водоёма меняет вес ветра.':
+      'Нет свежих данных о давлении и ветре (не старше 6 часов). Подключите интернет и нажмите «Обновить»; старые показания не выдаются за текущий прогноз.';
+  }
+
   function renderFish(){
     const {water,species}=fishPrefs,holder=$('fishSpots');
+    renderBiteIndex();
     $('fishWindAdvice').textContent=fishWindNote(water);
     $('fishWeatherAdvice').textContent=fishPressureNote()+' '+fishSeasonNote();
     $('fishBasis').textContent='Ориентиры, не координаты рыбы';
