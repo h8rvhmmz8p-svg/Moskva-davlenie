@@ -279,6 +279,27 @@
     .moon-card .now-value{font-size:19px;line-height:1.25;overflow-wrap:break-word;}
     @media (min-width:610px){.now-grid{grid-template-columns:repeat(2,minmax(0,1fr));}.moon-card{grid-column:auto;}.moon-card .now-value{font-size:23px;}.moon-illustration{font-size:48px;}}
     @media (max-width:370px){.air-weather-main .now-value{font-size:40px;}.moon-card .now-value{font-size:17px;}}
+
+    /* Солнечный календарь для выбранной точки. */
+    .sun-panel{margin-top:16px;padding:19px 18px 17px;overflow:hidden;}
+    .sun-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+    .sun-title-wrap{display:flex;align-items:center;gap:10px;min-width:0;}
+    .sun-title-icon{display:grid;place-items:center;background:var(--button-bg);border-radius:13px;width:42px;height:42px;font-size:23px;flex-shrink:0;}
+    .sun-heading h2{font-size:18px;letter-spacing:-.03em;margin:0;}
+    .sun-heading small{display:block;font-size:11px;color:var(--muted);margin-top:5px;}
+    .sun-phase{font-size:11px;font-weight:750;padding:7px 11px;border-radius:999px;background:var(--button-bg);color:var(--button-text);max-width:100%;}
+    .sun-times{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;}
+    .sun-time-item{display:flex;align-items:center;gap:10px;padding:12px 10px;border-radius:14px;background:var(--soft);border:1px solid var(--line);min-width:0;}
+    .sun-time-icon{font-size:24px;line-height:1;flex-shrink:0;}
+    .sun-time-label{font-size:11px;line-height:1.3;color:var(--muted);}
+    .sun-time-value{font-size:22px;line-height:1.25;font-weight:780;font-variant-numeric:tabular-nums;letter-spacing:-.03em;margin-top:5px;}
+    .sun-foot{display:flex;gap:8px;flex-wrap:wrap;justify-content:space-between;align-items:center;border-top:1px solid var(--line);padding-top:13px;margin-top:15px;font-size:12px;line-height:1.55;}
+    .sun-day-length{font-weight:720;color:var(--ink);}
+    .sun-timezone{color:var(--muted);font-size:11px;}
+    .sun-explain{font-size:11px;color:var(--muted);line-height:1.6;margin:10px 0 0;}
+    html[data-theme="dark"] .sun-time-item{background:#1b2d47;}
+    @media(max-width:360px){.sun-time-item{gap:7px;padding:11px 8px;}.sun-time-icon{font-size:21px;}.sun-time-label{font-size:10px;}.sun-time-value{font-size:20px;}}
+
   </style>
 </head>
 <body>
@@ -361,6 +382,39 @@
       </div>
     </section>
 
+
+    <section class="panel sun-panel" aria-labelledby="sunTitle">
+      <div class="sun-heading">
+        <div class="sun-title-wrap">
+          <span class="sun-title-icon" aria-hidden="true">🌅</span>
+          <div><h2 id="sunTitle">Солнце и сумерки</h2><small>Сегодня · выбранная точка</small></div>
+        </div>
+        <span class="sun-phase" id="sunPhase" aria-live="polite">Вычисляем…</span>
+      </div>
+      <div class="sun-times">
+        <div class="sun-time-item">
+          <span class="sun-time-icon" aria-hidden="true">🌄</span>
+          <div><div class="sun-time-label">Утренние сумерки · начало</div><div class="sun-time-value" id="civilDawn">—</div></div>
+        </div>
+        <div class="sun-time-item">
+          <span class="sun-time-icon" aria-hidden="true">☀️</span>
+          <div><div class="sun-time-label">Восход солнца</div><div class="sun-time-value" id="sunriseTime">—</div></div>
+        </div>
+        <div class="sun-time-item">
+          <span class="sun-time-icon" aria-hidden="true">🌇</span>
+          <div><div class="sun-time-label">Закат солнца</div><div class="sun-time-value" id="sunsetTime">—</div></div>
+        </div>
+        <div class="sun-time-item">
+          <span class="sun-time-icon" aria-hidden="true">🌌</span>
+          <div><div class="sun-time-label">Вечерние сумерки · конец</div><div class="sun-time-value" id="civilDusk">—</div></div>
+        </div>
+      </div>
+      <div class="sun-foot">
+        <span class="sun-day-length" id="daylightDuration">Световой день: —</span>
+        <span class="sun-timezone">Все часы — московское время (МСК)</span>
+      </div>
+      <p class="sun-explain" id="sunSource">Восход и закат — Open-Meteo; границы гражданских сумерек рассчитаны по высоте Солнца −6°. Возможна погрешность в несколько минут; местный рельеф не учитывается.</p>
+    </section>
 
     <section class="panel map-panel" aria-labelledby="mapTitle" id="spotMapPanel">
       <details id="mapFold" class="fold-panel">
@@ -477,7 +531,7 @@
   const DEFAULT_SPOT = {name:'Москва',lat:55.7558,lon:37.6176};
   const FIELDS = 'surface_pressure,relative_humidity_2m,wind_speed_10m,wind_direction_10m';
   const CURRENT_WEATHER_FIELDS = FIELDS+',temperature_2m,apparent_temperature,weather_code,is_day';
-  const DAILY_WEATHER_FIELDS = 'temperature_2m_max,temperature_2m_min,weather_code';
+  const DAILY_WEATHER_FIELDS = 'temperature_2m_max,temperature_2m_min,weather_code,sunrise,sunset';
   const $ = id => document.getElementById(id);
   const number = x => Number(x).toFixed(1).replace('.', ',');
   const dates = new Intl.DateTimeFormat('ru-RU',{timeZone:'Europe/Moscow',day:'numeric',month:'long'});
@@ -488,7 +542,7 @@
     humidity:{index:2,title:'Изменение влажности',legend:'Влажность, %',unit:'%',tooltip:'%',note:'Относительная влажность на высоте 2 м'},
     wind:{index:3,title:'Изменение скорости ветра',legend:'Скорость ветра, м/с',unit:'м/с',tooltip:'м/с',note:'Скорость ветра на высоте 10 м'}
   };
-  let period='week', metric='pressure', offset=0, points=[], isUpdating=false, savingAvailable=true, airWeather=null;
+  let period='week', metric='pressure', offset=0, points=[], isUpdating=false, savingAvailable=true, airWeather=null, sunForecast=null;
   const archivePending = new Set(), archiveDone = new Set();
   const validPressure = x => Number.isFinite(x) && x>600 && x<850;
   const nullable = (x, min, max) => Number.isFinite(x) && x>=min && x<=max ? x : null;
@@ -526,6 +580,7 @@
   }
   function loadSpotArchive(){
     airWeather=null; // Не переносим температуру и погоду предыдущей точки.
+    sunForecast=null; // Солнечные времена из API принадлежат только прежней точке.
     points=fromStorage().sort((a,b)=>a[0]-b[0]);
     archivePending.clear();archiveDone.clear();
     updateSpotLabels();
@@ -621,6 +676,7 @@
       if(Number.isFinite(c?.time) && validPressure(c?.surface_pressure*HPA_MM))
         fresh.push([c.time*1000,c.surface_pressure*HPA_MM,c.relative_humidity_2m,c.wind_speed_10m,c.wind_direction_10m]);
       if(!fresh.length) throw new Error('Пришёл пустой ответ');
+      sunForecast=readSunForecast(data);
       airWeather=readAirWeather(data);
       merge(fresh);clearNotice();maybeArchive();
     }catch(err){
@@ -663,6 +719,69 @@
       default: return {text:'Погодные условия неизвестны',icon:'🌡️'};
     }
   }
+  // Берём восход/закат Open-Meteo. Погодный API отдаёт Unix-время в секундах UTC.
+  function readSunForecast(data){
+    const daily=data?.daily,today=isoDate(Date.now());
+    const index=Array.isArray(daily?.time) ? daily.time.findIndex(t=>
+      (typeof t==='number' ? isoDate(t*1000) : String(t).slice(0,10))===today) : -1;
+    if(index<0)return null;
+    const rise=daily.sunrise?.[index],set=daily.sunset?.[index];
+    return Number.isFinite(rise)&&Number.isFinite(set)&&set>rise
+      ? {date:today,sunrise:rise*1000,sunset:set*1000} : null;
+  }
+  // Независимый астрономический расчёт утренних/вечерних гражданских сумерек:
+  // геометрическая высота центра Солнца -6°. Без внешнего скрипта и ключей API.
+  function solarTimes(dateMs, latitude, longitude){
+    const rad=Math.PI/180,J1970=2440588,J2000=2451545;
+    const lw=-longitude*rad,phi=latitude*rad;
+    const d=dateMs/DAY-0.5+J1970-J2000;
+    const n=Math.round(d-0.0009-lw/(2*Math.PI));
+    const ds=0.0009+lw/(2*Math.PI)+n;
+    const M=rad*(357.5291+0.98560028*ds);
+    const L=M+rad*(1.9148*Math.sin(M)+0.02*Math.sin(2*M)+0.0003*Math.sin(3*M))+rad*102.9372+Math.PI;
+    const decl=Math.asin(Math.sin(L)*Math.sin(rad*23.4397));
+    const jNoon=J2000+ds+0.0053*Math.sin(M)-0.0069*Math.sin(2*L);
+    const crossing=altitude=>{
+      const cosH=(Math.sin(altitude*rad)-Math.sin(phi)*Math.sin(decl))/(Math.cos(phi)*Math.cos(decl));
+      // В полярные дни/ночи отдельные события могут не наступать.
+      if(!Number.isFinite(cosH)||cosH < -1||cosH > 1)return [null,null];
+      const H=Math.acos(cosH),setTransit=0.0009+(H+lw)/(2*Math.PI)+n;
+      const jSet=J2000+setTransit+0.0053*Math.sin(M)-0.0069*Math.sin(2*L);
+      const jRise=jNoon-(jSet-jNoon);
+      const unixMs=j=>(j+0.5-J1970)*DAY;
+      return [unixMs(jRise),unixMs(jSet)];
+    };
+    const [sunrise,sunset]=crossing(-0.833);
+    const [dawn,dusk]=crossing(-6);
+    return {sunrise,sunset,dawn,dusk};
+  }
+  function renderSunTimes(){
+    const now=Date.now(),today=isoDate(now);
+    // Местная дата у всех часов в приложении московская.
+    const dateAtNoonMsk=moscowDayTime(now)+12*60*60*1000;
+    const computed=solarTimes(dateAtNoonMsk,spot.lat,spot.lon);
+    const fromApi=sunForecast?.date===today?sunForecast:null;
+    const sunrise=fromApi?.sunrise??computed.sunrise;
+    const sunset=fromApi?.sunset??computed.sunset;
+    const dawn=computed.dawn,dusk=computed.dusk;
+    const hhmm=ms=>Number.isFinite(ms)?timeFormat.format(ms):'—';
+    $('civilDawn').textContent=hhmm(dawn);
+    $('sunriseTime').textContent=hhmm(sunrise);
+    $('sunsetTime').textContent=hhmm(sunset);
+    $('civilDusk').textContent=hhmm(dusk);
+    if(Number.isFinite(sunrise)&&Number.isFinite(sunset)){
+      const minutes=Math.round((sunset-sunrise)/60000);
+      $('daylightDuration').textContent='Световой день: '+Math.floor(minutes/60)+' ч '+minutes%60+' мин';
+    }else $('daylightDuration').textContent='Световой день: нет обычного восхода/заката';
+    let phase='Время солнечных событий недоступно';
+    if(Number.isFinite(dawn)&&Number.isFinite(sunrise)&&Number.isFinite(sunset)&&Number.isFinite(dusk)){
+      phase=now<dawn?'Ночь':now<sunrise?'Утренние сумерки':now<sunset?'День':now<dusk?'Вечерние сумерки':'Ночь';
+    } else if(Number.isFinite(sunrise)&&Number.isFinite(sunset))phase=now>=sunrise&&now<sunset?'День':'Ночь';
+    $('sunPhase').textContent=phase;
+    $('sunSource').textContent=(fromApi?'Восход и закат — Open-Meteo; ':'Восход и закат — приблизительный астрономический расчёт (нет ответа Open-Meteo); ')+
+      'гражданские сумерки рассчитаны для высоты Солнца −6°. Возможна погрешность в несколько минут; местный рельеф не учитывается.';
+  }
+
   function readAirWeather(data){
     const current=data?.current, daily=data?.daily, timestamp=Number(current?.time)*1000;
     const today=isoDate(Date.now());
@@ -1136,7 +1255,7 @@
     $('periodTitle').textContent=rangeTitle(range);$('next').disabled=offset>=0;
     $('chartTitle').textContent=meta.title;$('chartLegend').textContent=meta.legend;$('metricNote').textContent=meta.note;
     $('count').textContent=valuePoints(filtered).length+' знач.';
-    showCurrent();showMoon();renderAirWeather();renderFish();showStats(filtered);drawChart(filtered,range);showHistory(filtered);
+    showCurrent();showMoon();renderAirWeather();renderSunTimes();renderFish();showStats(filtered);drawChart(filtered,range);showHistory(filtered);
     $('stored').textContent=points.length+' значений сохранено'+(savingAvailable?' в браузере':' только до закрытия страницы')+'.';
     document.querySelectorAll('[data-period]').forEach(btn=>btn.setAttribute('aria-pressed',String(btn.dataset.period===period)));
     document.querySelectorAll('[data-metric]').forEach(btn=>btn.setAttribute('aria-pressed',String(btn.dataset.metric===metric)));
