@@ -15,6 +15,7 @@
     })();
   </script>
   <title>Атмосфера — Москва: погода и поиск хищной рыбы</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
   <style>
     :root { color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; --ink:#182541; --muted:#64748b; --line:#e5eaf2; --blue:#386aeb; }
     * { box-sizing:border-box; }
@@ -217,6 +218,33 @@
     @media(max-width:350px){.fish-controls{grid-template-columns:1fr;}.fish-spot{padding:12px 11px;}}
     .source {font-size:12px;color:#6d7a91;line-height:1.5;margin-top:15px;}
     @media (min-width:610px) { .wrap{padding-left:25px;padding-right:25px}.hero-inner{padding-left:30px;padding-right:30px}.panel{padding:25px}.chart-wrap{height:290px}.stats{grid-template-columns:repeat(4,1fr);} }
+
+    .map-panel{margin-top:18px;}
+    .map-subtitle{font-size:12px;line-height:1.58;color:var(--muted);margin:8px 0 0;}
+    .map-toolbar{display:grid;gap:12px;margin-bottom:14px;}
+    .map-search{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;}
+    .map-search input{width:100%;min-width:0;min-height:46px;padding:0 13px;border:1px solid var(--line);border-radius:12px;background:var(--panel-bg);color:var(--ink);font:650 14px -apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;}
+    .map-search input::placeholder{color:var(--muted);}
+    .map-search button,.map-actions button,.preset-row button{border:1px solid var(--line);background:var(--panel-bg);color:var(--ink);min-height:46px;border-radius:12px;padding:0 14px;font-weight:700;}
+    .map-search button:hover,.map-actions button:hover,.preset-row button:hover{border-color:#aac3f6;}
+    .map-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+    .preset-row{display:flex;gap:8px;overflow:auto;padding-bottom:2px;scrollbar-width:none;}
+    .preset-row::-webkit-scrollbar{display:none;}
+    .preset-row button{min-height:38px;white-space:nowrap;border-radius:999px;padding:0 13px;font-size:12px;background:var(--soft);} 
+    .water-map{height:300px;border:1px solid var(--line);border-radius:18px;overflow:hidden;background:#d9e7f9;}
+    .leaflet-container{font:inherit;background:#d9e7f9;}
+    .map-status{font-size:12px;color:var(--muted);line-height:1.55;margin-top:11px;}
+    .map-meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px;}
+    .map-meta-card{padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--soft);}
+    .map-meta-card strong{display:block;font-size:13px;margin-bottom:5px;}
+    .map-meta-card span{display:block;font-size:12px;line-height:1.55;color:var(--muted);}
+    .map-fallback{display:grid;place-items:center;height:100%;padding:18px;text-align:center;font-size:12px;color:var(--muted);line-height:1.6;}
+    .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--panel-bg);color:var(--ink);}
+    .leaflet-control-attribution{font-size:10px;}
+    html[data-theme="dark"] .leaflet-control-zoom a{background:#16243b;color:#e6eefc;border-color:#2f486d;}
+    html[data-theme="dark"] .leaflet-control-attribution{background:#16243bcf;color:#c9d7f1;}
+    html[data-theme="dark"] .leaflet-control-attribution a{color:#a6c5ff;}
+    @media(max-width:460px){.map-search,.map-actions,.map-meta{grid-template-columns:1fr;}.water-map{height:280px;}}
     @media (max-width:350px){.mark{font-size:17px}.location{font-size:11px}.wrap{padding-left:12px;padding-right:12px}.panel{padding:15px}.unit{font-size:13px}}
   </style>
 </head>
@@ -229,7 +257,7 @@
           Атмосфера
         </div>
         <div class="head-actions">
-          <div class="location">📍 Москва · МСК</div>
+          <div class="location" id="locationBadge" aria-live="polite">📍 Москва</div>
           <button id="themeToggle" class="theme-toggle" type="button" aria-label="Включить тёмную тему" title="Переключить тему" aria-pressed="false">
             <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.2 15.7A8.6 8.6 0 0 1 8.3 3.8 8.7 8.7 0 1 0 20.2 15.7Z"/></svg>
             <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>
@@ -285,6 +313,38 @@
       </div>
     </section>
 
+
+    <section class="panel map-panel" aria-labelledby="mapTitle" id="spotMapPanel">
+      <div class="section-top">
+        <div><div class="eyebrow" style="color:#8a97aa;opacity:1">КАРТА ВОДОЁМОВ</div><h2 id="mapTitle">Выбор точки рыбалки</h2><p class="map-subtitle">Найдите водоём по названию, выберите готовую точку или просто нажмите на карту. Погода, ветер и индекс условий пересчитаются для выбранных координат.</p></div>
+        <button class="text-button" id="myLocationBtn" type="button">⌖ Моя точка</button>
+      </div>
+      <div class="map-toolbar">
+        <div class="map-search">
+          <input id="spotSearch" type="search" placeholder="Например, Истринское водохранилище" autocomplete="off" enterkeyhint="search">
+          <button id="spotSearchBtn" type="button">Найти</button>
+        </div>
+        <div class="map-actions">
+          <button id="resetMoscowBtn" type="button">Москва</button>
+          <button id="saveSpotBtn" type="button">Запомнить точку</button>
+        </div>
+        <div class="preset-row" role="group" aria-label="Быстрый выбор водоёма">
+          <button type="button" data-spot='{"name":"Истринское водохранилище","lat":56.046,"lon":36.826,"water":"reservoir"}'>Истра</button>
+          <button type="button" data-spot='{"name":"Рузское водохранилище","lat":55.727,"lon":36.184,"water":"reservoir"}'>Руза</button>
+          <button type="button" data-spot='{"name":"Можайское водохранилище","lat":55.547,"lon":35.867,"water":"reservoir"}'>Можайка</button>
+          <button type="button" data-spot='{"name":"Ока, Серпухов","lat":54.915,"lon":37.444,"water":"river"}'>Ока</button>
+          <button type="button" data-spot='{"name":"Волга, Дубна","lat":56.744,"lon":37.179,"water":"river"}'>Волга</button>
+          <button type="button" data-spot='{"name":"Селигер","lat":57.226,"lon":33.071,"water":"lake"}'>Селигер</button>
+        </div>
+      </div>
+      <div id="map" class="water-map" role="application" aria-label="Интерактивная карта водоёмов"></div>
+      <div id="mapStatus" class="map-status">Выбрана точка: Москва. Нажмите на карту, чтобы поставить маркер; для рек и озёр ориентируйтесь по фактическому типу водоёма.</div>
+      <div class="map-meta">
+        <div class="map-meta-card"><strong id="mapSpotName">Москва</strong><span id="mapCoords">55,756; 37,618</span></div>
+        <div class="map-meta-card"><strong>Что меняется</strong><span>Давление, ветер, влажность и индекс условий для клёва будут считаться для этой точки. Подсказки по стоянкам хищника остаются эвристическими и зависят от типа водоёма.</span></div>
+      </div>
+    </section>
+
     <section class="panel fish-panel" aria-labelledby="predatorTitle" id="predator">
       <div class="section-top fish-head">
         <div><div class="fish-eyebrow">РЫБАЛКА · ПОДСКАЗКИ ПО МЕСТАМ</div><h2 id="predatorTitle">Где искать хищника</h2><p class="fish-subtitle">Выберите водоём и рыбу — покажем перспективные участки с поправкой на погоду.</p></div>
@@ -299,7 +359,7 @@
         </select></div>
       </div>
       <section class="bite-panel" aria-label="Оценка условий для клёва">
-        <div class="bite-heading"><div><div class="bite-kicker">🎯 Погодный индекс · Москва</div><h3>Условия для клёва хищника</h3></div><span class="bite-badge" id="biteFreshness">Проверяем погоду…</span></div>
+        <div class="bite-heading"><div><div class="bite-kicker">🎯 Погодный индекс · Выбранная точка</div><h3>Условия для клёва хищника</h3></div><span class="bite-badge" id="biteFreshness">Проверяем погоду…</span></div>
         <div class="bite-list" id="biteScores" aria-live="polite" role="list"></div>
         <p class="bite-explain" id="biteExplanation">Оценка появится после загрузки свежих погодных данных.</p>
         <p class="bite-warning"><strong>Важно:</strong> проценты — условный индекс благоприятности погоды (0–100), <strong>не вероятность поклёвки или поимки</strong>. Метод не обучен на реальных уловах. Для точного прогноза нужны данные конкретного водоёма и температура воды.</p>
@@ -310,8 +370,8 @@
       </div>
       <div class="fish-list-head"><h3>Точки для первого поиска</h3><small id="fishBasis">По особенностям водоёма</small></div>
       <div class="fish-spots" id="fishSpots" role="list" aria-live="polite"></div>
-      <div class="fish-caution" id="fishCaution">Это не обнаружение рыбы: точное место зависит от глубин, температуры воды, течения, укрытий и наличия малька. Погода берётся для Москвы, а не для выбранного водоёма.</div>
-      <details class="fish-method"><summary>Как рассчитывается процент?</summary><p>Это эвристический индекс, а не измеренная вероятность. Базовая оценка — 50 баллов. Учитываются скорость ветра (особенно на открытой воде), примерное время суток для выбранного хищника и сезон. Для щуки есть небольшая поправка на фазу Луны; резкий перепад давления служит лишь слабым маркером смены погоды. Влажность показываем для справки — её самостоятельное влияние не доказано. Полученный балл ограничен диапазоном 20–80, поскольку температура воды, течение, рельеф, рыболовная нагрузка и наличие рыбы неизвестны. Данные берутся для Москвы, а не для конкретной точки ловли. На воде учитывайте безопасность и местные правила.</p></details>
+      <div class="fish-caution" id="fishCaution">Это не обнаружение рыбы: точное место зависит от глубин, температуры воды, течения, укрытий и наличия малька. Погода берётся для выбранной точки; тип водоёма выберите вручную.</div>
+      <details class="fish-method"><summary>Как рассчитывается процент?</summary><p>Это эвристический индекс, а не измеренная вероятность. Базовая оценка — 50 баллов. Учитываются скорость ветра (особенно на открытой воде), примерное время суток для выбранного хищника и сезон. Для щуки есть небольшая поправка на фазу Луны; резкий перепад давления служит лишь слабым маркером смены погоды. Влажность показываем для справки — её самостоятельное влияние не доказано. Полученный балл ограничен диапазоном 20–80, поскольку температура воды, течение, рельеф, рыболовная нагрузка и наличие рыбы неизвестны. Данные берутся для выбранной точки на карте. На воде учитывайте безопасность и местные правила.</p></details>
     </section>
     <section class="panel" aria-labelledby="chartTitle">
       <div class="section-top">
@@ -351,6 +411,7 @@
     </section>
     <footer class="footer"><strong>История давления, ветра и влажности сохраняется в браузере этого устройства.</strong> При открытии страницы подгружаются данные за последние 92 дня. При очистке данных Safari архив может пропасть. В закрытом Safari фоновое накопление не выполняется, но пропуски можно восстановить из погодного архива. Для общего хранилища на разных устройствах нужен сервер.</footer>
   </main>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script>
 (() => {
   'use strict';
@@ -359,7 +420,8 @@
   const HPA_MM = 0.750061683;
   // Оставляем прежний ключ: старый архив давления продолжает работать.
   const STORAGE = 'moscow_pressure_open_meteo_history_v1';
-  const LAT = '55.7558', LON = '37.6176';
+  const SPOT_STORAGE = 'moscow_weather_selected_spot_v1';
+  const DEFAULT_SPOT = {name:'Москва',lat:55.7558,lon:37.6176};
   const FIELDS = 'surface_pressure,relative_humidity_2m,wind_speed_10m,wind_direction_10m';
   const $ = id => document.getElementById(id);
   const number = x => Number(x).toFixed(1).replace('.', ',');
@@ -375,6 +437,67 @@
   const archivePending = new Set(), archiveDone = new Set();
   const validPressure = x => Number.isFinite(x) && x>600 && x<850;
   const nullable = (x, min, max) => Number.isFinite(x) && x>=min && x<=max ? x : null;
+  function roundCoord(v){return Math.round(Number(v)*1000)/1000;}
+  function formatCoord(v){return roundCoord(v).toFixed(3).replace('.',',');}
+  function spotStorageKey(){return STORAGE+'::'+roundCoord(spot.lat).toFixed(3)+','+roundCoord(spot.lon).toFixed(3);}
+  function inferWaterType(text=''){
+    const value=String(text).toLowerCase();
+    if(/водохран|reservoir/.test(value))return 'reservoir';
+    if(/река|river|канал|проток/.test(value))return 'river';
+    if(/пруд|pond/.test(value))return 'pond';
+    if(/озер|lake|селигер|лиман|залив/.test(value))return 'lake';
+    return null;
+  }
+  function readSpot(){
+    let stored={};
+    try{stored=JSON.parse(localStorage.getItem(SPOT_STORAGE)||'{}')||{};}catch(_){}
+    const lat=Number(stored.lat),lon=Number(stored.lon);
+    return Number.isFinite(lat)&&Math.abs(lat)<=90&&Number.isFinite(lon)&&Math.abs(lon)<=180
+      ? {name:(stored.name||'Выбранная точка').trim()||'Выбранная точка',lat,lon}
+      : {...DEFAULT_SPOT};
+  }
+  function saveSpot(){
+    try{localStorage.setItem(SPOT_STORAGE,JSON.stringify(spot));}catch(_){}
+  }
+  let spot=readSpot(), map=null, mapMarker=null;
+  function spotLabel(){return spot.name||'Выбранная точка';}
+  function updateSpotLabels(){
+    $('locationBadge').textContent='📍 '+spotLabel();
+    $('mapSpotName').textContent=spotLabel();
+    $('mapCoords').textContent=formatCoord(spot.lat)+'; '+formatCoord(spot.lon);
+    $('mapStatus').textContent='Выбрана точка: '+spotLabel()+' ('+formatCoord(spot.lat)+'; '+formatCoord(spot.lon)+'). Нажмите на карту, чтобы поставить маркер; прогноз и графики пересчитаются для этой точки.';
+    const kicker=document.querySelector('.bite-kicker');
+    if(kicker) kicker.textContent='🎯 Погодный индекс · '+spotLabel();
+  }
+  function loadSpotArchive(){
+    points=fromStorage().sort((a,b)=>a[0]-b[0]);
+    archivePending.clear();archiveDone.clear();
+    updateSpotLabels();
+    render();
+  }
+  function applySpot(next,options={}){
+    const lat=Number(next?.lat),lon=Number(next?.lon);
+    if(!Number.isFinite(lat)||!Number.isFinite(lon)) return;
+    spot={name:(next?.name||spot.name||'Выбранная точка').trim()||'Выбранная точка',lat,lon};
+    saveSpot();
+    if(next?.water && WATER_KINDS.includes(next.water)){
+      $('waterType').value=next.water;
+      fishPrefs={...fishPrefs,water:next.water};
+      try{localStorage.setItem(FISH_PREF_KEY,JSON.stringify(fishPrefs));}catch(_){}
+    }
+    if(mapMarker) mapMarker.setLatLng([lat,lon]);
+    if(map && options.moveMap!==false) map.setView([lat,lon], options.zoom ?? Math.max(map.getZoom()||9,9));
+    loadSpotArchive();
+    if(options.update!==false) update();
+  }
+  async function reverseGeocode(lat,lon){
+    try{
+      const data=await loadJSON('https://nominatim.openstreetmap.org/reverse?format=jsonv2&accept-language=ru&lat='+encodeURIComponent(lat)+'&lon='+encodeURIComponent(lon));
+      const name=data?.name||data?.address?.water||data?.address?.river||data?.address?.reservoir||data?.address?.lake||data?.display_name?.split(',').slice(0,2).join(', ');
+      if(name){spot.name=name;saveSpot();updateSpotLabels();renderFish();}
+    }catch(_){/* молча оставляем координаты */}
+  }
+
   // p = [время UTC, давление мм, влажность %, ветер м/с, направление ветра в градусах].
   function cleanPoint(p) {
     if(!Array.isArray(p) || !Number.isFinite(p[0]) || !validPressure(p[1])) return null;
@@ -382,12 +505,14 @@
   }
   function fromStorage() {
     try {
-      const raw = JSON.parse(localStorage.getItem(STORAGE) || '[]');
+      const key=spotStorageKey();
+      const fallback=key===STORAGE+'::55.756,37.618' ? localStorage.getItem(STORAGE) : null;
+      const raw = JSON.parse(localStorage.getItem(key) || fallback || '[]');
       return Array.isArray(raw) ? raw.map(cleanPoint).filter(Boolean).slice(-25000) : [];
     } catch(e) {savingAvailable=false;return [];}
   }
   function save() {
-    try {localStorage.setItem(STORAGE,JSON.stringify(points));savingAvailable=true;}
+    try {localStorage.setItem(spotStorageKey(),JSON.stringify(points));savingAvailable=true;}
     catch(e) {savingAvailable=false;showNotice('Не удалось сохранить данные в Safari. Проверьте настройки браузера и наличие места.');}
   }
   function merge(incoming) {
@@ -430,7 +555,7 @@
     if(isUpdating)return;
     isUpdating=true;$('reload').disabled=true;$('reload').textContent='Загрузка…';
     try {
-      const url='https://api.open-meteo.com/v1/forecast?latitude='+LAT+'&longitude='+LON+
+      const url='https://api.open-meteo.com/v1/forecast?latitude='+spot.lat+'&longitude='+spot.lon+
         '&hourly='+FIELDS+'&current='+FIELDS+'&past_days=92&forecast_days=1&timezone=Europe%2FMoscow&timeformat=unixtime&wind_speed_unit=ms';
       const data=await loadJSON(url);
       const fresh=extractHourly(data),c=data.current;
@@ -621,10 +746,10 @@
   }
   function fishWindNote(water){
     const p=freshFishWeather();
-    if(!p)return 'Нет свежего ветра для Москвы. Выбирайте точки по рельефу, течению и наличию малька.';
+    if(!p)return 'Нет свежего ветра для выбранной точки. Выбирайте места по рельефу, течению и наличию малька.';
     const speed=p[3],where=oppositeDir(p[4]),from=directionName(p[4]);
-    if(water==='river')return 'В Москве ветер с '+from+' ('+number(speed)+' м/с). На реке выбирайте прежде всего обратки и границы струи: течение важнее ветра.';
-    if(water==='pond')return 'В Москве ветер с '+from+' ('+number(speed)+' м/с). В небольшом пруду важнее трава, коряги и глубина; снос корма ветром может быть слабым.';
+    if(water==='river')return 'Ветер здесь с '+from+' ('+number(speed)+' м/с). На реке выбирайте прежде всего обратки и границы струи: течение важнее ветра.';
+    if(water==='pond')return 'Ветер здесь с '+from+' ('+number(speed)+' м/с). В небольшом пруду важнее трава, коряги и глубина; снос корма ветром может быть слабым.';
     if(speed<1.5)return 'Почти штиль ('+number(speed)+' м/с). Подветренный берег сейчас не выделяется — начните с укрытий и перепадов глубины.';
     if(speed>7)return 'Ветер с '+from+' ('+number(speed)+' м/с). На открытой воде может быть опасно; начните с защищённых заливов и сторон мысов.';
     return 'Ветер с '+from+' ('+number(speed)+' м/с) гонит волну к '+where+' берегу. Проверьте у него бровки и входы в заливы, если там есть малёк.';
@@ -715,7 +840,7 @@
       body.append(name,grade,detail);card.append(meter,body);box.append(card);
     }
     caption.textContent=snapshot?
-      'Индекс на сейчас, по погоде Москвы. Ветер '+number(snapshot.last[3])+' м/с; '+
+      'Индекс на сейчас, по погоде выбранной точки. Ветер '+number(snapshot.last[3])+' м/с; '+
         (Number.isFinite(snapshot.delta)?'изменение давления '+(snapshot.delta>0?'+':'')+number(snapshot.delta)+' мм примерно за 3 ч. ':'тренд давления недоступен. ')+
         'Влажность и Луна показаны вверху; влажность не влияет на баллы. Выбор водоёма меняет вес ветра.':
       'Нет свежих данных о давлении и ветре (не старше 6 часов). Подключите интернет и нажмите «Обновить»; старые показания не выдаются за текущий прогноз.';
@@ -746,8 +871,46 @@
       content.append(top,reason,check);article.append(badge,content);holder.append(article);
     });
     $('fishCaution').textContent=(species==='zander'&&water==='pond'?'Проверьте, водится ли судак в этом пруду. ':'')+
-      'Это не обнаружение рыбы: точное место зависит от глубин, температуры воды, течения, укрытий и малька. Погодные данные относятся к Москве, а не к выбранному водоёму. Учитывайте сезонные правила и безопасность.';
+      'Это не обнаружение рыбы: точное место зависит от глубин, температуры воды, течения, укрытий и малька. Погодные данные относятся к выбранной точке на карте; тип водоёма и реальные глубины задаются приблизительно. Учитывайте сезонные правила и безопасность.';
   }
+
+  async function searchSpot(){
+    const query=$('spotSearch').value.trim();
+    if(!query){showNotice('Введите название водоёма или населённого пункта.');return;}
+    try{
+      $('spotSearchBtn').disabled=true;$('spotSearchBtn').textContent='Поиск…';
+      const data=await loadJSON('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&accept-language=ru&q='+encodeURIComponent(query));
+      if(!Array.isArray(data)||!data.length) throw new Error('место не найдено');
+      const item=data[0];
+      applySpot({name:item.display_name.split(',').slice(0,2).join(', '),lat:Number(item.lat),lon:Number(item.lon),water:inferWaterType(item.display_name+' '+(item.type||''))});
+      clearNotice();
+    }catch(err){showNotice('Не удалось найти точку: '+err.message+'. Попробуйте уточнить название водоёма.');}
+    finally{$('spotSearchBtn').disabled=false;$('spotSearchBtn').textContent='Найти';}
+  }
+  function initMap(){
+    const holder=$('map');
+    if(!(window.L&&holder)){
+      holder.innerHTML='<div class="map-fallback">Карта не загрузилась. Проверьте интернет или откройте страницу через сайт, а не из локального файла.</div>';
+      return;
+    }
+    map=L.map(holder,{zoomControl:true,scrollWheelZoom:false}).setView([spot.lat,spot.lon],9);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© OpenStreetMap'}).addTo(map);
+    mapMarker=L.marker([spot.lat,spot.lon],{draggable:true}).addTo(map);
+    mapMarker.bindPopup('Точка прогноза').openPopup();
+    map.on('click',e=>{
+      const lat=e.latlng.lat,lon=e.latlng.lng;
+      applySpot({name:'Выбранная точка',lat,lon},{moveMap:false});
+      map.setView([lat,lon],map.getZoom());
+      reverseGeocode(lat,lon);
+    });
+    mapMarker.on('dragend',()=>{
+      const pos=mapMarker.getLatLng();
+      applySpot({name:'Выбранная точка',lat:pos.lat,lon:pos.lng},{moveMap:false});
+      reverseGeocode(pos.lat,pos.lng);
+    });
+    setTimeout(()=>map.invalidateSize(),150);
+  }
+
   for(const key of ['waterType','fishSpecies']){
     $(key).addEventListener('change',()=>{
       fishPrefs={water:$('waterType').value,species:$('fishSpecies').value};
@@ -861,7 +1024,7 @@
     if(archivePending.has(key)||archiveDone.has(key))return;
     archivePending.add(key);
     try{
-      const url='https://archive-api.open-meteo.com/v1/archive?latitude='+LAT+'&longitude='+LON+
+      const url='https://archive-api.open-meteo.com/v1/archive?latitude='+spot.lat+'&longitude='+spot.lon+
         '&hourly='+FIELDS+'&start_date='+isoDate(start)+'&end_date='+isoDate(Math.min(end-1,Date.now()-DAY))+
         '&timezone=Europe%2FMoscow&timeformat=unixtime&wind_speed_unit=ms';
       const data=await loadJSON(url);merge(extractHourly(data));archiveDone.add(key);
@@ -898,10 +1061,29 @@
     try {localStorage.setItem('moscow_weather_theme_v1',next);} catch (_) {}
     syncThemeButton();
     render(); // Перерисовываем SVG-график с цветами новой темы.
+    if(map) setTimeout(()=>map.invalidateSize(),120);
   });
+  $('spotSearchBtn').addEventListener('click',searchSpot);
+  $('spotSearch').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();searchSpot();}});
+  $('resetMoscowBtn').addEventListener('click',()=>applySpot(DEFAULT_SPOT));
+  $('saveSpotBtn').addEventListener('click',()=>{saveSpot();showNotice('Точка сохранена на этом устройстве.');});
+  $('myLocationBtn').addEventListener('click',()=>{
+    if(!navigator.geolocation){showNotice('Геолокация не поддерживается этим браузером.');return;}
+    navigator.geolocation.getCurrentPosition(pos=>{
+      applySpot({name:'Моё местоположение',lat:pos.coords.latitude,lon:pos.coords.longitude,water:fishPrefs.water});
+      reverseGeocode(pos.coords.latitude,pos.coords.longitude);
+      clearNotice();
+    },err=>showNotice('Не удалось получить геопозицию: '+err.message),{enableHighAccuracy:true,timeout:12000,maximumAge:300000});
+  });
+  document.querySelectorAll('[data-spot]').forEach(btn=>btn.addEventListener('click',()=>{
+    try{applySpot(JSON.parse(btn.dataset.spot));clearNotice();}catch(_){showNotice('Не удалось выбрать точку.');}
+  }));
   syncThemeButton();
+  updateSpotLabels();
   points=fromStorage().sort((a,b)=>a[0]-b[0]);
-  render();update();
+  render();
+  initMap();
+  update();
   setInterval(()=>{if(document.visibilityState==='visible')update();},10*60*1000);
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')update();});
 })();
