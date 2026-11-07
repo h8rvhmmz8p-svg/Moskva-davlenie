@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#101c33">
-  <meta name="description" content="Погода в Москве: давление, ветер, влажность, фаза Луны, графики и история измерений.">
+  <meta name="description" content="Погода в Москве и рыбалка: давление, ветер, влажность, Луна, графики и ориентиры для поиска хищника.">
   <script>
     // Устанавливаем сохранённую тему до отрисовки, чтобы избежать вспышки светлого фона.
     (() => {
@@ -14,7 +14,7 @@
         (window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     })();
   </script>
-  <title>Атмосфера — Москва: давление, ветер, влажность и Луна</title>
+  <title>Атмосфера — Москва: погода и поиск хищной рыбы</title>
   <style>
     :root { color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; --ink:#182541; --muted:#64748b; --line:#e5eaf2; --blue:#386aeb; }
     * { box-sizing:border-box; }
@@ -151,6 +151,42 @@
     html[data-theme="dark"] .stat-unit{color:#a2b2cc;}
     @media(max-width:390px){.location{padding:6px 8px;font-size:11px}.mark{font-size:18px}.head-actions{gap:6px}.theme-toggle{width:38px;height:38px}.wind-compass{width:60px;height:60px;}}
     @media(max-width:340px){.mark{font-size:16px}.mark svg{width:23px;height:23px}.wind-compass{width:52px;height:52px;}}
+
+    /* Подсказки по поиску хищника — отдельный мобильный раздел. */
+    .fish-panel{--fish-tint:#f2f7ff;--fish-soft:#f8faff;--fish-accent:#2b5fce;--fish-green:#19766d;--fish-warning:#fff9e9;margin-top:18px;}
+    .fish-head{margin-bottom:19px;align-items:flex-start;}
+    .fish-eyebrow{font-size:10px;font-weight:850;letter-spacing:.14em;text-transform:uppercase;color:var(--fish-accent);}
+    .fish-subtitle{font-size:12px;line-height:1.5;color:var(--muted);margin:8px 0 0;}
+    .fish-emoji{width:43px;height:43px;display:grid;place-items:center;border-radius:14px;background:var(--fish-tint);font-size:25px;flex-shrink:0;}
+    .fish-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:17px;}
+    .fish-field{display:flex;flex-direction:column;gap:7px;min-width:0;}
+    .fish-field label{font-size:12px;font-weight:720;color:var(--muted);}
+    .fish-field select{width:100%;min-width:0;min-height:47px;padding:0 31px 0 12px;border:1px solid var(--line);border-radius:12px;background:var(--panel-bg);color:var(--ink);font:650 14px -apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238596ae' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;}
+    .fish-field select:focus-visible{outline:3px solid #90b3f4;outline-offset:2px;}
+    .fish-context{display:grid;gap:9px;margin:0 0 19px;}
+    .fish-weather-card{background:var(--fish-tint);border:1px solid var(--line);border-radius:14px;padding:12px 13px;display:flex;gap:11px;align-items:flex-start;}
+    .fish-weather-icon{font-size:19px;line-height:1.3;flex-shrink:0;}
+    .fish-weather-card strong{display:block;font-size:12px;margin-bottom:4px;}
+    .fish-weather-card span:last-child{font-size:12px;color:var(--muted);line-height:1.5;display:block;}
+    .fish-weather-minor{background:var(--fish-soft);}
+    .fish-list-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+    .fish-list-head h3{font-size:15px;letter-spacing:-.025em;margin:0;}
+    .fish-list-head small{color:var(--muted);font-size:11px;}
+    .fish-spots{display:grid;gap:10px;}
+    .fish-spot{display:flex;gap:12px;padding:15px 14px;border:1px solid var(--line);border-radius:15px;background:var(--panel-bg);}
+    .fish-spot-number{height:29px;width:29px;display:grid;place-items:center;background:var(--fish-tint);color:var(--fish-accent);font-weight:800;font-size:12px;border-radius:9px;flex-shrink:0;}
+    .fish-spot-content{flex:1;min-width:0;}
+    .fish-spot-top{display:flex;gap:8px;justify-content:space-between;align-items:baseline;flex-wrap:wrap;}
+    .fish-spot-title{font-size:14px;font-weight:750;line-height:1.35;letter-spacing:-.012em;}
+    .fish-spot-species{font-size:10px;white-space:nowrap;font-weight:750;color:var(--fish-accent);background:var(--fish-tint);border-radius:20px;padding:4px 8px;}
+    .fish-spot-reason{font-size:12px;line-height:1.55;margin:7px 0 0;color:var(--muted);}
+    .fish-spot-check{font-size:11px;line-height:1.5;margin:7px 0 0;color:var(--fish-green);font-weight:650;}
+    .fish-caution{border-left:3px solid #d69d3d;border-radius:6px;padding:8px 0 8px 12px;font-size:11px;line-height:1.6;color:var(--muted);margin-top:15px;}
+    .fish-method{margin-top:13px;padding:12px;border:1px solid var(--line);border-radius:12px;font-size:12px;color:var(--muted);}
+    .fish-method summary{cursor:pointer;font-weight:750;color:var(--fish-accent);min-height:22px;}
+    .fish-method p{margin:9px 0 0;line-height:1.55;}
+    html[data-theme="dark"] .fish-panel{--fish-tint:#233857;--fish-soft:#1c2d47;--fish-accent:#a6c5ff;--fish-green:#88d9bf;--fish-warning:#403522;}
+    @media(max-width:350px){.fish-controls{grid-template-columns:1fr;}.fish-spot{padding:12px 11px;}}
     .source {font-size:12px;color:#6d7a91;line-height:1.5;margin-top:15px;}
     @media (min-width:610px) { .wrap{padding-left:25px;padding-right:25px}.hero-inner{padding-left:30px;padding-right:30px}.panel{padding:25px}.chart-wrap{height:290px}.stats{grid-template-columns:repeat(4,1fr);} }
     @media (max-width:350px){.mark{font-size:17px}.location{font-size:11px}.wrap{padding-left:12px;padding-right:12px}.panel{padding:15px}.unit{font-size:13px}}
@@ -219,6 +255,29 @@
         </div>
         <div class="moon-illustration" id="moonIcon" aria-hidden="true">🌑</div>
       </div>
+    </section>
+
+    <section class="panel fish-panel" aria-labelledby="predatorTitle" id="predator">
+      <div class="section-top fish-head">
+        <div><div class="fish-eyebrow">РЫБАЛКА · ПОДСКАЗКИ ПО МЕСТАМ</div><h2 id="predatorTitle">Где искать хищника</h2><p class="fish-subtitle">Выберите водоём и рыбу — покажем перспективные участки с поправкой на погоду.</p></div>
+        <div class="fish-emoji" aria-hidden="true">🎣</div>
+      </div>
+      <div class="fish-controls">
+        <div class="fish-field"><label for="waterType">Тип водоёма</label><select id="waterType">
+          <option value="reservoir">Водохранилище</option><option value="river">Река</option><option value="lake">Озеро</option><option value="pond">Пруд</option>
+        </select></div>
+        <div class="fish-field"><label for="fishSpecies">Вид рыбы</label><select id="fishSpecies">
+          <option value="all">Все хищники</option><option value="pike">Щука</option><option value="zander">Судак</option><option value="perch">Окунь</option>
+        </select></div>
+      </div>
+      <div class="fish-context" aria-live="polite">
+        <div class="fish-weather-card"><span class="fish-weather-icon" aria-hidden="true">🧭</span><div><strong>Ветер и выбор берега</strong><span id="fishWindAdvice">Ожидаем данные о ветре…</span></div></div>
+        <div class="fish-weather-card fish-weather-minor"><span class="fish-weather-icon" aria-hidden="true">◷</span><div><strong>Погода и сезон</strong><span id="fishWeatherAdvice">Рекомендации уточнятся после загрузки погоды.</span></div></div>
+      </div>
+      <div class="fish-list-head"><h3>Точки для первого поиска</h3><small id="fishBasis">По особенностям водоёма</small></div>
+      <div class="fish-spots" id="fishSpots" role="list" aria-live="polite"></div>
+      <div class="fish-caution" id="fishCaution">Это не обнаружение рыбы: точное место зависит от глубин, температуры воды, течения, укрытий и наличия малька. Погода берётся для Москвы, а не для выбранного водоёма.</div>
+      <details class="fish-method"><summary>Как понимать этот прогноз?</summary><p>Подсказки основаны на типичных местах обитания и охоты щуки, судака и окуня. Ветер помогает предположить, где волна сгоняет корм, но не показывает положение рыбы. Давление, влажность и Луна не используются как «точный прогноз клёва». На месте проверяйте рельеф, течение, кормовую рыбу и правила рыболовства.</p></details>
     </section>
     <section class="panel" aria-labelledby="chartTitle">
       <div class="section-top">
@@ -420,6 +479,155 @@
     $('moonIllum').textContent='Освещено ≈ '+m.lit+'% диска';
     $('moonNext').textContent=m.nextFull<1?'Полнолуние примерно сегодня': 'До полнолуния ≈ '+Math.ceil(m.nextFull)+' дн.';
   }
+
+  // Рыболовные подсказки — эвристика мест обитания, НЕ координаты рыбы и НЕ прогноз клёва.
+  const FISH_PREF_KEY='moscow_weather_fishing_prefs_v1';
+  const WATER_KINDS=['reservoir','river','lake','pond'];
+  const FISH_KINDS=['all','pike','zander','perch'];
+  const FISH_NAMES={pike:'Щука',zander:'Судак',perch:'Окунь'};
+  // Описания мест опираются на рельеф и укрытия; прогноз не зависит от «магических» чисел давления.
+  const FISH_SPOTS={
+    reservoir:{
+      pike:[
+        ['Выход из залива','На переходе от тихого залива к основному плёсу хищник может ждать кормовую рыбу.','Проверьте линию травы и ближайший перепад глубины.'],
+        ['Бровка у полива','Щуке удобны границы мелководья и более глубокого участка, где можно атаковать из засады.','Ищите живую растительность, укрытия и малька.'],
+        ['Коряжник возле глубины','Затопленные ветви создают укрытия и точки концентрации добычи.','Обловите внешнюю кромку, не рискуя снастями.']
+      ],
+      zander:[
+        ['Русловой свал','У перехода с русла на полив часто проходит кормовая рыба.','Ищите твёрдое дно и ступени рельефа.'],
+        ['Каменистая гряда','Твёрдый грунт и перепад глубин дают укрытия и маршруты охоты.','Проверьте начало и конец гряды.'],
+        ['Выход из глубокой ямы','На границе глубины и более мелкого участка рыба может сопровождать малька.','Ищите рыбу на разных горизонтах, не только у дна.']
+      ],
+      perch:[
+        ['Подводный бугор','По склонам бугра может двигаться малёк, за которым следует окунь.','Обловите вершину и обе стороны свала.'],
+        ['Стая малька у бровки','Окунь часто держится поблизости от небольших рыб.','Смотрите на всплески и эхолот, если он есть.'],
+        ['Край травы в заливе','Здесь мелочь находит укрытие, а окунь — корм.','Проверьте окна в траве и границу открытой воды.']
+      ]
+    },
+    river:{
+      pike:[
+        ['Обратка за мысом','В более тихой воде рядом с основной струёй проще устраивать засаду.','Начните с границы быстрого и медленного течения.'],
+        ['Коряги у кромки течения','Древесные укрытия позволяют ждать добычу почти без затрат сил.','Проверьте участок ниже коряги по течению.'],
+        ['Вход в тихую протоку','Кормовая рыба может заходить в спокойную воду и выходить обратно.','Осмотрите вход и ближайшую бровку.']
+      ],
+      zander:[
+        ['Русловая бровка','У границы русла меняются течение и глубина — удобный маршрут поиска корма.','Найдите участок с твёрдым грунтом.'],
+        ['Выход из ямы','Граница глубины и течения перспективнее ровного однообразного дна.','Проверяйте верхнюю и нижнюю кромку.'],
+        ['Каменная коса у струи','На твёрдых участках с разным течением хищнику удобно перехватывать добычу.','Облавливайте границу струи и затишья.']
+      ],
+      perch:[
+        ['Шов течений','На границе струй часто собираются мелкие рыбки.','Проверьте медленную сторону границы.'],
+        ['Затишье за опорой','За препятствием течение ослабевает, образуя укрытие.','Начните у края обратной струи.'],
+        ['Перекат перед глубиной','Перепад глубины и твёрдое дно могут удерживать добычу.','Проверьте вход в глубокую часть.']
+      ]
+    },
+    lake:{
+      pike:[
+        ['Кромка подводной травы','Щука часто использует растительность для засады.','Проверьте окна и край зарослей со стороны глубины.'],
+        ['Свалы рядом с заливом','Граница мелководья и глубины — возможный маршрут кормовой рыбы.','Облавливайте ступени глубины и одиночные укрытия.'],
+        ['Коряжник у берега','Ветки и затопленные деревья создают теневые засады.','Проверьте внешний край и соседнее чистое дно.']
+      ],
+      zander:[
+        ['Твёрдый свал','Если судак водится в озере, он может использовать твёрдое дно и переходы глубин.','Проверьте песок, камень и ступени рельефа.'],
+        ['Подводная коса','Коса соединяет участки разной глубины, вдоль неё движется добыча.','Проверьте кончик косы и боковой склон.'],
+        ['Глубинная гряда','Неровности дна дают точки для поиска стаи кормовой рыбы.','Ищите активную рыбу на границах гряды.']
+      ],
+      perch:[
+        ['Край водной растительности','Около травы часто держится малёк, а рядом охотится окунь.','Посмотрите окна в траве и чистую кромку.'],
+        ['Перепад глубин','Стаи могут перемещаться вдоль бровок вслед за кормом.','Проверьте верх и низ склона.'],
+        ['Малёк у островка','Затенение и укрытие иногда собирают добычу окуня.','Осмотрите разные стороны островка.']
+      ]
+    },
+    pond:{
+      pike:[
+        ['Край камыша и кувшинок','Растительность создаёт засаду рядом с мелкой рыбой.','Проверьте отдельные окна и выходы из травы.'],
+        ['Свал у плотины','Если там глубже, такой участок может служить убежищем при смене условий.','Ищите переход дна, а не просто саму плотину.'],
+        ['Затопленные ветви','Даже небольшой коряжник создаёт укрытие для щуки.','Обловите край укрытия и ближнюю бровку.']
+      ],
+      zander:[
+        ['Глубина у плотины','Судак есть далеко не в каждом пруду; если он присутствует, начните с глубин.','Проверьте фактическое наличие судака в водоёме.'],
+        ['Переход на твёрдое дно','Судак может выбирать участки с более плотным грунтом.','Ищите камень или песок около глубины.'],
+        ['Затопленное русло ручья','Если русло сохранилось, его кромки создают переходы глубин.','Проверьте, есть ли русло на карте глубин.']
+      ],
+      perch:[
+        ['Окна в траве','Окунь ищет малька на границе укрытия и открытой воды.','Проверьте небольшие просветы у растительности.'],
+        ['Свал у дамбы','Перепад глубин позволяет окуню перемещаться за кормом.','Облавливайте верх и низ бровки.'],
+        ['Устье впадающего ручья','Если ручей есть, возле него может концентрироваться мелочь.','Проверьте участок рядом с притоком без сильной мути.']
+      ]
+    }
+  };
+  function readFishPrefs(){
+    let stored={};
+    try{stored=JSON.parse(localStorage.getItem(FISH_PREF_KEY)||'{}')||{};}catch(_){}
+    return {water:WATER_KINDS.includes(stored.water)?stored.water:'reservoir',species:FISH_KINDS.includes(stored.species)?stored.species:'all'};
+  }
+  let fishPrefs=readFishPrefs();
+  $('waterType').value=fishPrefs.water;
+  $('fishSpecies').value=fishPrefs.species;
+  function oppositeDir(deg){return directionName((deg+180)%360);}
+  function freshFishWeather(){
+    const p=points.slice().reverse().find(row=>row[0]<=Date.now()&&Number.isFinite(row[3])&&Number.isFinite(row[4]));
+    return p&&Date.now()-p[0]<=6*60*60*1000?p:null;
+  }
+  function fishPressureNote(){
+    const last=points.slice().reverse().find(p=>p[0]<=Date.now());
+    if(!last||Date.now()-last[0]>6*60*60*1000)return 'Свежих данных о давлении нет.';
+    const before=points.slice().reverse().find(p=>p[0]<=last[0]-3*60*60*1000);
+    if(!before||last[0]-before[0]>6*60*60*1000)return 'Для тренда давления пока мало данных.';
+    const delta=last[1]-before[1];
+    if(Math.abs(delta)<0.7)return 'Давление почти не изменилось за 3 часа.';
+    return 'Давление '+(delta>0?'растёт':'снижается')+' (≈ '+number(Math.abs(delta))+' мм за 3 ч).';
+  }
+  function fishSeasonNote(){
+    const month=new Date(Date.now()+MSK).getUTCMonth()+1;
+    if(month===12||month<=2)return 'Зимний период: температура воды и состояние льда неизвестны, не выходите на непроверенный лёд.';
+    if(month>=10)return 'Осенний период: проверяйте бровки и переходы глубин поблизости от кормовой рыбы.';
+    if(month>=6&&month<=8)return 'Летний период: проверяйте укрытия, перепады глубин и прохладные участки; температура воды неизвестна.';
+    return 'Весенний период: учитывайте прогрев воды, нерестовые ограничения и расположение малька.';
+  }
+  function fishWindNote(water){
+    const p=freshFishWeather();
+    if(!p)return 'Нет свежего ветра для Москвы. Выбирайте точки по рельефу, течению и наличию малька.';
+    const speed=p[3],where=oppositeDir(p[4]),from=directionName(p[4]);
+    if(water==='river')return 'В Москве ветер с '+from+' ('+number(speed)+' м/с). На реке выбирайте прежде всего обратки и границы струи: течение важнее ветра.';
+    if(water==='pond')return 'В Москве ветер с '+from+' ('+number(speed)+' м/с). В небольшом пруду важнее трава, коряги и глубина; снос корма ветром может быть слабым.';
+    if(speed<1.5)return 'Почти штиль ('+number(speed)+' м/с). Подветренный берег сейчас не выделяется — начните с укрытий и перепадов глубины.';
+    if(speed>7)return 'Ветер с '+from+' ('+number(speed)+' м/с). На открытой воде может быть опасно; начните с защищённых заливов и сторон мысов.';
+    return 'Ветер с '+from+' ('+number(speed)+' м/с) гонит волну к '+where+' берегу. Проверьте у него бровки и входы в заливы, если там есть малёк.';
+  }
+  function renderFish(){
+    const {water,species}=fishPrefs,holder=$('fishSpots');
+    $('fishWindAdvice').textContent=fishWindNote(water);
+    $('fishWeatherAdvice').textContent=fishPressureNote()+' '+fishSeasonNote();
+    $('fishBasis').textContent='Ориентиры, не координаты рыбы';
+    const selected=species==='all'?['pike','zander','perch']:[species];
+    const entries=selected.flatMap(s=>{
+      const locations=FISH_SPOTS[water][s];
+      return (species==='all'?locations.slice(0,1):locations).map(item=>({species:s,spot:item}));
+    });
+    holder.replaceChildren();
+    entries.forEach((entry,i)=>{
+      const article=document.createElement('article');article.className='fish-spot';article.setAttribute('role','listitem');
+      const badge=document.createElement('span');badge.className='fish-spot-number';badge.textContent=String(i+1);
+      const content=document.createElement('div');content.className='fish-spot-content';
+      const top=document.createElement('div');top.className='fish-spot-top';
+      const title=document.createElement('div');title.className='fish-spot-title';title.textContent=entry.spot[0];
+      const speciesBadge=document.createElement('span');speciesBadge.className='fish-spot-species';speciesBadge.textContent=FISH_NAMES[entry.species];
+      top.append(title,speciesBadge);
+      const reason=document.createElement('p');reason.className='fish-spot-reason';reason.textContent=entry.spot[1];
+      const check=document.createElement('p');check.className='fish-spot-check';check.textContent='На месте: '+entry.spot[2];
+      content.append(top,reason,check);article.append(badge,content);holder.append(article);
+    });
+    $('fishCaution').textContent=(species==='zander'&&water==='pond'?'Проверьте, водится ли судак в этом пруду. ':'')+
+      'Это не обнаружение рыбы: точное место зависит от глубин, температуры воды, течения, укрытий и малька. Погодные данные относятся к Москве, а не к выбранному водоёму. Учитывайте сезонные правила и безопасность.';
+  }
+  for(const key of ['waterType','fishSpecies']){
+    $(key).addEventListener('change',()=>{
+      fishPrefs={water:$('waterType').value,species:$('fishSpecies').value};
+      try{localStorage.setItem(FISH_PREF_KEY,JSON.stringify(fishPrefs));}catch(_){}
+      renderFish();
+    });
+  }
   function setStat(id,value){$(id).textContent=value===null?'—':number(value);}
   function showStats(filtered){
     const meta=METRICS[metric],val=valuePoints(filtered);
@@ -510,7 +718,7 @@
     $('periodTitle').textContent=rangeTitle(range);$('next').disabled=offset>=0;
     $('chartTitle').textContent=meta.title;$('chartLegend').textContent=meta.legend;$('metricNote').textContent=meta.note;
     $('count').textContent=valuePoints(filtered).length+' знач.';
-    showCurrent();showMoon();showStats(filtered);drawChart(filtered,range);showHistory(filtered);
+    showCurrent();showMoon();renderFish();showStats(filtered);drawChart(filtered,range);showHistory(filtered);
     $('stored').textContent=points.length+' значений сохранено'+(savingAvailable?' в браузере':' только до закрытия страницы')+'.';
     document.querySelectorAll('[data-period]').forEach(btn=>btn.setAttribute('aria-pressed',String(btn.dataset.period===period)));
     document.querySelectorAll('[data-metric]').forEach(btn=>btn.setAttribute('aria-pressed',String(btn.dataset.metric===metric)));
