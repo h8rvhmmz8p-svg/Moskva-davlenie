@@ -5,6 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#101c33">
   <meta name="description" content="Погода в Москве: давление, ветер, влажность, фаза Луны, графики и история измерений.">
+  <script>
+    // Устанавливаем сохранённую тему до отрисовки, чтобы избежать вспышки светлого фона.
+    (() => {
+      let saved;
+      try { saved = localStorage.getItem('moscow_weather_theme_v1'); } catch (_) {}
+      document.documentElement.dataset.theme = saved === 'dark' || saved === 'light' ? saved :
+        (window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    })();
+  </script>
   <title>Атмосфера — Москва: давление, ветер, влажность и Луна</title>
   <style>
     :root { color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; --ink:#182541; --muted:#64748b; --line:#e5eaf2; --blue:#386aeb; }
@@ -86,6 +95,62 @@
     @media (min-width:610px) { .now-grid{grid-template-columns:repeat(3,minmax(0,1fr));}.moon-card{grid-column:auto;}.moon-card .now-value{font-size:20px;}.moon-illustration{font-size:46px;}.moon-card{padding:16px 12px;} }
     @media (max-width:360px) {.now-card{padding:13px;}.now-value{font-size:30px;}.moon-illustration{font-size:54px;}.metric-tabs button{font-size:11px;}}
     .footer strong {color:#596981;}
+    /* Кнопка темы — достаточно большая для нажатия на iPhone. */
+    .head-actions{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+    .theme-toggle{display:grid;place-items:center;width:40px;height:40px;border:1px solid #ffffff48;border-radius:13px;background:#ffffff1a;color:#eff5ff;transition:background .2s,transform .2s;}
+    .theme-toggle:active{transform:scale(.94);}
+    .theme-toggle:focus-visible{outline:3px solid #a6c6ff;outline-offset:2px;}
+    .theme-toggle svg{height:20px;width:20px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;}
+    .icon-sun{display:none;}
+    html[data-theme="dark"] .icon-moon{display:none;}
+    html[data-theme="dark"] .icon-sun{display:block;}
+    /* Компас: стрелка показывает направление, ОТКУДА дует ветер. */
+    .wind-measure{display:flex;justify-content:space-between;align-items:center;gap:3px;}
+    .wind-compass{width:68px;height:68px;flex-shrink:0;margin-top:7px;color:#315fd5;overflow:visible;}
+    .compass-ring{fill:var(--compass-bg,#f0f5ff);stroke:var(--compass-ring,#bccdf0);stroke-width:1.5;}
+    .compass-grid{stroke:var(--compass-lines,#bdc9df);stroke-width:1.5;stroke-linecap:round;}
+    .compass-label{font:700 8px -apple-system,BlinkMacSystemFont,sans-serif;fill:var(--compass-label,#7890b2);text-anchor:middle;}
+    .compass-label.north{fill:var(--compass-north,#315fd5);}
+    .compass-arrow{fill:var(--compass-north,#315fd5);}
+    .compass-arrow-tail{fill:var(--compass-tail,#a9b9d5);}
+    .compass-center{fill:var(--compass-center,#fff);stroke:var(--compass-north,#315fd5);stroke-width:1.5;}
+    .wind-compass.is-missing .compass-arrow,.wind-compass.is-missing .compass-arrow-tail{opacity:.2;}
+    /* Все ключевые поверхности и подписи меняют тему, включая оси графика. */
+    :root{--page-bg:#f3f6fb;--panel-bg:#fff;--panel-line:#e8ecf4;--stat-border:#e8edf5;--tabs-bg:#f1f4f9;--tabs-text:#66748b;--tabs-active:#fff;--tabs-active-text:#2758d2;--button-bg:#eef3ff;--button-border:#e5edff;--button-text:#315eca;--graph-grid:#e9edf4;--graph-axis:#8a98ab;--graph-line:#386aeb;--graph-dot-border:#fff;--compass-bg:#f0f5ff;--compass-ring:#bccdf0;--compass-lines:#bdc9df;--compass-label:#7890b2;--compass-north:#315fd5;--compass-tail:#a9b9d5;--compass-center:#fff;}
+    body{background:var(--page-bg);}
+    .panel,.now-card{background:var(--panel-bg);border-color:var(--panel-line);}
+    .stat{background:var(--panel-bg);border-color:var(--stat-border);}
+    .tabs{background:var(--tabs-bg);}
+    .tabs button{color:var(--tabs-text);}
+    .tabs button[aria-pressed="true"]{background:var(--tabs-active);color:var(--tabs-active-text);}
+    .metric-tabs button,.nav button{background:var(--panel-bg);border-color:var(--line);color:var(--muted);}
+    .metric-tabs button[aria-pressed="true"]{background:var(--button-bg);color:var(--button-text);border-color:var(--button-border);}
+    .refresh{background:var(--button-bg);border-color:var(--button-border);color:var(--button-text);}
+    .moon-card{background:linear-gradient(110deg,var(--panel-bg),#f7f8ff);}
+    .item{border-color:var(--line);}
+    .chart-empty strong{color:var(--ink);}
+    html[data-theme="dark"]{
+      color-scheme:dark;
+      --ink:#e9f0ff;--muted:#a1afc9;--line:#31435d;--blue:#90b1ff;
+      --page-bg:#0c1424;--panel-bg:#17243a;--panel-line:#2a3a55;--stat-border:#293a54;
+      --tabs-bg:#111c2e;--tabs-text:#9eafc9;--tabs-active:#2b4063;--tabs-active-text:#c2d6ff;
+      --button-bg:#233958;--button-border:#375178;--button-text:#bcd2ff;
+      --graph-grid:#34465f;--graph-axis:#9fb0c9;--graph-line:#88aaff;--graph-dot-border:#17243a;
+      --compass-bg:#213554;--compass-ring:#4c6385;--compass-lines:#526882;--compass-label:#9db2d3;
+      --compass-north:#a3c5ff;--compass-tail:#607ca8;--compass-center:#1b2b45;
+    }
+    html[data-theme="dark"] .hero{background:linear-gradient(130deg,#070d19,#13233d 80%,#20365b);}
+    html[data-theme="dark"] .panel,html[data-theme="dark"] .now-card{box-shadow:0 12px 34px #00000024;}
+    html[data-theme="dark"] .now-card .card-label .symbol{background:#284266;color:#b4ccff;}
+    html[data-theme="dark"] .moon-card{background:linear-gradient(110deg,#182741,#213352);}
+    html[data-theme="dark"] .stat-title,html[data-theme="dark"] .stat-foot,html[data-theme="dark"] .now-card .card-label,html[data-theme="dark"] .now-caption,html[data-theme="dark"] .now-value small{color:#a2b3d0;}
+    html[data-theme="dark"] .section-top .eyebrow{color:#95a8c6!important;}
+    html[data-theme="dark"] .chart-head,html[data-theme="dark"] .point-label,html[data-theme="dark"] .metric-note,html[data-theme="dark"] .sub,html[data-theme="dark"] .source,html[data-theme="dark"] .footer,html[data-theme="dark"] .footer strong,html[data-theme="dark"] .item-time,html[data-theme="dark"] .item-extra,html[data-theme="dark"] .item-val small{color:#a4b3cc;}
+    html[data-theme="dark"] .notice{background:#3a301f;color:#ffdda3;border-color:#80603a;}
+    html[data-theme="dark"] a,html[data-theme="dark"] .text-button{color:#9dbbff;}
+    html[data-theme="dark"] .stat-unit{color:#a2b2cc;}
+    @media(max-width:390px){.location{padding:6px 8px;font-size:11px}.mark{font-size:18px}.head-actions{gap:6px}.theme-toggle{width:38px;height:38px}.wind-compass{width:60px;height:60px;}}
+    @media(max-width:340px){.mark{font-size:16px}.mark svg{width:23px;height:23px}.wind-compass{width:52px;height:52px;}}
     .source {font-size:12px;color:#6d7a91;line-height:1.5;margin-top:15px;}
     @media (min-width:610px) { .wrap{padding-left:25px;padding-right:25px}.hero-inner{padding-left:30px;padding-right:30px}.panel{padding:25px}.chart-wrap{height:290px}.stats{grid-template-columns:repeat(4,1fr);} }
     @media (max-width:350px){.mark{font-size:17px}.location{font-size:11px}.wrap{padding-left:12px;padding-right:12px}.panel{padding:15px}.unit{font-size:13px}}
@@ -99,7 +164,13 @@
           <svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M6 19a7 7 0 0 1 7-7 9 9 0 0 1 17 4 6 6 0 0 1-6 11H11a7 7 0 0 1-5-8Z" stroke="#cde1ff" stroke-width="2.4" stroke-linejoin="round"/><path d="M10 21h13M13 25h7" stroke="#93b8ff" stroke-width="2.5" stroke-linecap="round"/></svg>
           Атмосфера
         </div>
-        <div class="location">📍 Москва · МСК</div>
+        <div class="head-actions">
+          <div class="location">📍 Москва · МСК</div>
+          <button id="themeToggle" class="theme-toggle" type="button" aria-label="Включить тёмную тему" title="Переключить тему" aria-pressed="false">
+            <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.2 15.7A8.6 8.6 0 0 1 8.3 3.8 8.7 8.7 0 1 0 20.2 15.7Z"/></svg>
+            <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>
+          </button>
+        </div>
       </div>
       <div class="hero-data">
         <div class="eyebrow">Атмосферное давление</div>
@@ -115,8 +186,23 @@
   <main class="wrap">
     <section class="now-grid" aria-label="Текущие погодные данные">
       <div class="now-card">
-        <div class="card-label"><span class="symbol" aria-hidden="true">〰</span> Ветер</div>
-        <div class="now-value"><span id="windNow">—</span><small>м/с</small></div>
+        <div class="card-label"><span class="symbol" aria-hidden="true">✦</span> Ветер</div>
+        <div class="wind-measure">
+          <div class="now-value"><span id="windNow">—</span><small>м/с</small></div>
+          <svg id="windCompass" class="wind-compass is-missing" viewBox="0 0 76 76" role="img" aria-label="Компас направления ветра; данные ещё не получены">
+            <circle class="compass-ring" cx="38" cy="38" r="32"/>
+            <path class="compass-grid" d="M38 15v4M38 57v4M15 38h4M57 38h4"/>
+            <text class="compass-label north" x="38" y="13">С</text>
+            <text class="compass-label" x="65" y="41">В</text>
+            <text class="compass-label" x="38" y="69">Ю</text>
+            <text class="compass-label" x="11" y="41">З</text>
+            <g id="windNeedle">
+              <path class="compass-arrow-tail" d="M38 38L32 53L38 48L44 53Z"/>
+              <path class="compass-arrow" d="M38 18L31 41L38 36L45 41Z"/>
+            </g>
+            <circle class="compass-center" cx="38" cy="38" r="3"/>
+          </svg>
+        </div>
         <div class="now-caption" id="windDirection">Направление неизвестно</div>
       </div>
       <div class="now-card">
@@ -307,7 +393,15 @@
     const wind=[...points].reverse().find(p=>p[0]<=Date.now()&&Number.isFinite(p[3]));
     $('humidityNow').textContent=humid?Math.round(humid[2]):'—';
     $('windNow').textContent=wind?number(wind[3]):'—';
-    $('windDirection').textContent=wind&&Number.isFinite(wind[4])?'Дует с '+directionName(wind[4])+' · '+Math.round(wind[4])+'°':'Направление неизвестно';
+    const hasDirection=wind&&Number.isFinite(wind[4]);
+    $('windDirection').textContent=hasDirection?'Дует с '+directionName(wind[4])+' · '+Math.round(wind[4])+'°':'Направление неизвестно';
+    // В метеоданных угол означает направление, ОТКУДА идёт ветер.
+    // В исходном SVG стрелка смотрит на север (0°). Вращаем по часовой стрелке.
+    $('windNeedle').setAttribute('transform','rotate('+(hasDirection?wind[4]:0)+' 38 38)');
+    $('windCompass').classList.toggle('is-missing',!hasDirection);
+    $('windCompass').setAttribute('aria-label',hasDirection?
+      'Направление ветра: дует с '+directionName(wind[4])+', '+Math.round(wind[4])+' градусов. Стрелка показывает, откуда дует ветер.':
+      'Направление ветра неизвестно');
     $('humidityNote').textContent='Относительная влажность';
   }
   // Расчёт лунной фазы по средней продолжительности синодического месяца.
@@ -357,12 +451,12 @@
     svg.setAttribute('viewBox',`0 0 ${W} ${H}`);svg.setAttribute('aria-label',meta.title+' за выбранный период');
     for(let k=0;k<5;k++){
       const yy=t+(H-t-b)*k/4,v=hi-(hi-lo)*k/4;
-      append('line',{x1:l,y1:yy,x2:W-r,y2:yy,stroke:'#e9edf4','stroke-dasharray':'3 4'});
-      append('text',{x:l-8,y:yy+4,fill:'#98a4b5','font-size':'11','text-anchor':'end'},metric==='humidity'?Math.round(v)+'':number(v));
+      append('line',{x1:l,y1:yy,x2:W-r,y2:yy,stroke:'var(--graph-grid)','stroke-dasharray':'3 4'});
+      append('text',{x:l-8,y:yy+4,fill:'var(--graph-axis)','font-size':'11','text-anchor':'end'},metric==='humidity'?Math.round(v)+'':number(v));
     }
     for(let k=0;k<4;k++){
       const ms=range[0]+(range[1]-range[0])*k/3;
-      append('text',{x:l+(W-l-r)*k/3,y:H-8,fill:'#8a98ab','font-size':'10','text-anchor':k===0?'start':k===3?'end':'middle'},period==='day'?timeFormat.format(ms):dateShort.format(ms));
+      append('text',{x:l+(W-l-r)*k/3,y:H-8,fill:'var(--graph-axis)','font-size':'10','text-anchor':k===0?'start':k===3?'end':'middle'},period==='day'?timeFormat.format(ms):dateShort.format(ms));
     }
     // Прерываем линию на пропусках более трёх часов, чтобы не выдавать их за измерения.
     const segments=[];let segment=[];
@@ -372,16 +466,16 @@
     }
     if(segment.length)segments.push(segment);
     const defs=document.createElementNS(NS,'defs');
-    defs.innerHTML='<linearGradient id="pressureFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#386aeb" stop-opacity=".20"/><stop offset="100%" stop-color="#386aeb" stop-opacity="0"/></linearGradient>';
+    defs.innerHTML='<linearGradient id="pressureFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="var(--graph-line)" stop-opacity=".25"/><stop offset="100%" stop-color="var(--graph-line)" stop-opacity="0"/></linearGradient>';
     svg.appendChild(defs);
     for(const s of segments){
       const d=s.map((p,j)=>(j===0?'M':'L')+x(p[0]).toFixed(2)+' '+y(p[i]).toFixed(2)).join(' ');
       const base=y(lo);
       append('path',{d:d+' L '+x(s.at(-1)[0]).toFixed(2)+' '+base+' L '+x(s[0][0]).toFixed(2)+' '+base+' Z',fill:'url(#pressureFill)'});
-      append('path',{d,stroke:'#386aeb','stroke-width':'2.7',fill:'none','stroke-linecap':'round','stroke-linejoin':'round'});
+      append('path',{d,stroke:'var(--graph-line)','stroke-width':'2.7',fill:'none','stroke-linecap':'round','stroke-linejoin':'round'});
     }
     const last=vals.at(-1);
-    append('circle',{cx:x(last[0]),cy:y(last[i]),r:4.5,fill:'#386aeb',stroke:'#fff','stroke-width':'2'});
+    append('circle',{cx:x(last[0]),cy:y(last[i]),r:4.5,fill:'var(--graph-line)',stroke:'var(--graph-dot-border)','stroke-width':'2'});
     function pick(clientX){
       const rect=svg.getBoundingClientRect(),sx=(clientX-rect.left)/rect.width*W;
       const ms=range[0]+(Math.max(l,Math.min(W-r,sx))-l)/(W-l-r)*(range[1]-range[0]);
@@ -454,6 +548,23 @@
     a.href=url;a.download='pogoda-moskva-'+isoDate(getPeriodRange()[0])+'.csv';
     document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
   });
+  // Настройка применяется ко всему сайту и сохраняется отдельно от архива измерений.
+  function syncThemeButton() {
+    const dark=document.documentElement.dataset.theme==='dark';
+    const label=dark?'Включить светлую тему':'Включить тёмную тему';
+    $('themeToggle').setAttribute('aria-pressed',String(dark));
+    $('themeToggle').setAttribute('aria-label',label);
+    $('themeToggle').title=label;
+    document.querySelector('meta[name="theme-color"]').content=dark?'#0c1424':'#101c33';
+  }
+  $('themeToggle').addEventListener('click',()=>{
+    const next=document.documentElement.dataset.theme==='dark'?'light':'dark';
+    document.documentElement.dataset.theme=next;
+    try {localStorage.setItem('moscow_weather_theme_v1',next);} catch (_) {}
+    syncThemeButton();
+    render(); // Перерисовываем SVG-график с цветами новой темы.
+  });
+  syncThemeButton();
   points=fromStorage().sort((a,b)=>a[0]-b[0]);
   render();update();
   setInterval(()=>{if(document.visibilityState==='visible')update();},10*60*1000);
