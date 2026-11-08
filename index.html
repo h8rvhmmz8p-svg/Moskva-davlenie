@@ -365,6 +365,7 @@
 
     /* План поездки: сравнение ближайших дней по прогнозу, без ложной «вероятности улова». */
     .trip-panel{margin-top:18px;}
+    .trip-panel .trip-intro{color:var(--muted);font-size:12px;line-height:1.55;margin:0 0 17px;}
     .trip-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:15px;}
     .trip-heading h2{font-size:19px;letter-spacing:-.03em;margin:4px 0 0;}
     .trip-heading p{font-size:12px;line-height:1.55;color:var(--muted);margin:8px 0 0;}
@@ -516,14 +517,17 @@
 
 
     <section class="panel trip-panel" id="tripPanel" aria-labelledby="tripTitle">
-      <div class="trip-heading">
-        <div>
-          <div class="eyebrow" style="color:#8a97aa;opacity:1">ПЛАНИРОВАНИЕ РЫБАЛКИ</div>
-          <h2 id="tripTitle">Когда лучше ехать?</h2>
-          <p>Сравним ближайшие 5 дней и найдём наиболее подходящее трёхчасовое окно по погоде в выбранной точке.</p>
-        </div>
-        <div class="trip-emoji" aria-hidden="true">🎣</div>
-      </div>
+      <details id="tripFold" class="fold-panel">
+        <summary class="fold-summary">
+          <span class="fold-title">
+            <span class="eyebrow" style="color:#8a97aa;opacity:1">ПЛАНИРОВАНИЕ РЫБАЛКИ</span>
+            <h2 id="tripTitle">Когда лучше ехать?</h2>
+            <span class="fold-description">Прогноз на 5 дней и лучшие часы для рыбалки</span>
+          </span>
+          <span class="fold-chevron" aria-hidden="true">⌄</span>
+        </summary>
+        <div class="fold-content">
+          <p class="trip-intro">Сравним ближайшие 5 дней и найдём наиболее подходящее трёхчасовое окно по погоде в выбранной точке.</p>
       <div class="trip-controls">
         <div class="trip-control"><label for="tripSpecies">Для какой рыбы</label><select id="tripSpecies">
           <option value="all">Для всех хищников</option><option value="pike">Щука</option><option value="zander">Судак</option><option value="perch">Окунь</option>
@@ -533,6 +537,8 @@
       <div id="tripBest" class="trip-empty" aria-live="polite">Загрузка прогноза погоды для выбранной точки…</div>
       <div id="tripDays" class="trip-days" aria-label="Сравнение ближайших дней"></div>
       <p class="trip-foot">Индекс 0–100 — <strong>ориентировочная оценка условий</strong>, а не вероятность поклёвки. Учитываются время суток, сезон, ветер, изменения давления и предупреждения о сильных осадках/порывах. Не учитываются температура воды, рельеф, кормовая рыба и реальная статистика улова. При грозе и опасном ветре не выходите на воду, даже если остальные условия хорошие. Все часы указаны по МСК.</p>
+        </div>
+      </details>
     </section>
 
     <section class="panel map-panel" aria-labelledby="mapTitle" id="spotMapPanel">
