@@ -362,6 +362,42 @@
     html[data-theme="dark"] .sun-time-item{background:#1b2d47;}
     @media(max-width:360px){.sun-time-item{gap:7px;padding:11px 8px;}.sun-time-icon{font-size:21px;}.sun-time-label{font-size:10px;}.sun-time-value{font-size:20px;}}
 
+
+    /* План поездки: сравнение ближайших дней по прогнозу, без ложной «вероятности улова». */
+    .trip-panel{margin-top:18px;}
+    .trip-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:15px;}
+    .trip-heading h2{font-size:19px;letter-spacing:-.03em;margin:4px 0 0;}
+    .trip-heading p{font-size:12px;line-height:1.55;color:var(--muted);margin:8px 0 0;}
+    .trip-emoji{background:var(--button-bg);border-radius:15px;width:46px;height:46px;display:grid;place-items:center;font-size:24px;flex-shrink:0;}
+    .trip-controls{display:flex;align-items:flex-end;gap:11px;justify-content:space-between;flex-wrap:wrap;margin-bottom:14px;}
+    .trip-control{display:flex;flex-direction:column;gap:6px;flex:1;min-width:170px;}
+    .trip-control label{font-weight:700;font-size:12px;color:var(--muted);}
+    .trip-control select{min-height:43px;background:var(--panel-bg);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:8px 12px;font:650 14px -apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;width:100%;}
+    .trip-info{font-size:11px;color:var(--muted);line-height:1.5;}
+    .trip-feature{padding:17px;border-radius:18px;border:1px solid var(--line);background:linear-gradient(125deg,var(--button-bg),var(--panel-bg) 84%);margin:4px 0 13px;}
+    .trip-feature-top{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+    .trip-pill{font-size:10px;color:var(--button-text);border:1px solid var(--button-border);border-radius:18px;padding:6px 9px;font-weight:750;background:var(--panel-bg);}
+    .trip-feature-name{font-size:19px;font-weight:800;line-height:1.25;letter-spacing:-.03em;margin:12px 0 5px;}
+    .trip-feature-time{font-size:22px;font-weight:800;letter-spacing:-.04em;font-variant-numeric:tabular-nums;}
+    .trip-feature-note{font-size:12px;color:var(--muted);line-height:1.55;margin-top:9px;}
+    .trip-feature-score{font-weight:820;color:var(--button-text);font-size:21px;font-variant-numeric:tabular-nums;}
+    .trip-days{display:grid;gap:10px;}
+    .trip-day{border:1px solid var(--line);background:var(--panel-bg);border-radius:15px;padding:13px;}
+    .trip-day.is-best{border-color:var(--button-text);}
+    .trip-day-header{display:flex;justify-content:space-between;align-items:center;gap:8px;}
+    .trip-day-name{font-size:14px;font-weight:800;text-transform:capitalize;}
+    .trip-day-score{font-size:14px;color:var(--button-text);font-weight:800;white-space:nowrap;}
+    .trip-progress{height:5px;background:var(--line);border-radius:10px;margin:11px 0;overflow:hidden;}
+    .trip-progress span{display:block;height:100%;background:var(--graph-line);border-radius:10px;}
+    .trip-day-time{font-size:13px;font-weight:750;}
+    .trip-day-weather{font-size:11px;color:var(--muted);line-height:1.55;margin-top:6px;}
+    .trip-risk{font-size:11px;line-height:1.5;color:#a0601b;font-weight:650;margin-top:7px;}
+    html[data-theme="dark"] .trip-risk{color:#edc483;}
+    .trip-foot{font-size:11px;color:var(--muted);line-height:1.65;margin:13px 2px 0;}
+    .trip-empty{padding:16px;border:1px dashed var(--line);border-radius:14px;font-size:12px;color:var(--muted);line-height:1.6;}
+    @media(min-width:600px){.trip-days{grid-template-columns:repeat(2,minmax(0,1fr));}}
+    @media(max-width:350px){.trip-feature-time{font-size:19px;}.trip-feature-name{font-size:17px;}.trip-feature{padding:13px;}}
+
   </style>
 </head>
 <body>
@@ -476,6 +512,27 @@
         <span class="sun-timezone">Все часы — московское время (МСК)</span>
       </div>
       <p class="sun-explain" id="sunSource">Восход и закат — Open-Meteo; границы гражданских сумерек рассчитаны по высоте Солнца −6°. Возможна погрешность в несколько минут; местный рельеф не учитывается.</p>
+    </section>
+
+
+    <section class="panel trip-panel" id="tripPanel" aria-labelledby="tripTitle">
+      <div class="trip-heading">
+        <div>
+          <div class="eyebrow" style="color:#8a97aa;opacity:1">ПЛАНИРОВАНИЕ РЫБАЛКИ</div>
+          <h2 id="tripTitle">Когда лучше ехать?</h2>
+          <p>Сравним ближайшие 5 дней и найдём наиболее подходящее трёхчасовое окно по погоде в выбранной точке.</p>
+        </div>
+        <div class="trip-emoji" aria-hidden="true">🎣</div>
+      </div>
+      <div class="trip-controls">
+        <div class="trip-control"><label for="tripSpecies">Для какой рыбы</label><select id="tripSpecies">
+          <option value="all">Для всех хищников</option><option value="pike">Щука</option><option value="zander">Судак</option><option value="perch">Окунь</option>
+        </select></div>
+        <span class="trip-info" id="tripStatus" role="status">Получаем прогноз…</span>
+      </div>
+      <div id="tripBest" class="trip-empty" aria-live="polite">Загрузка прогноза погоды для выбранной точки…</div>
+      <div id="tripDays" class="trip-days" aria-label="Сравнение ближайших дней"></div>
+      <p class="trip-foot">Индекс 0–100 — <strong>ориентировочная оценка условий</strong>, а не вероятность поклёвки. Учитываются время суток, сезон, ветер, изменения давления и предупреждения о сильных осадках/порывах. Не учитываются температура воды, рельеф, кормовая рыба и реальная статистика улова. При грозе и опасном ветре не выходите на воду, даже если остальные условия хорошие. Все часы указаны по МСК.</p>
     </section>
 
     <section class="panel map-panel" aria-labelledby="mapTitle" id="spotMapPanel">
@@ -597,6 +654,7 @@
   const FIELDS = 'surface_pressure,relative_humidity_2m,wind_speed_10m,wind_direction_10m';
   const CURRENT_WEATHER_FIELDS = FIELDS+',temperature_2m,apparent_temperature,weather_code,is_day';
   const DAILY_WEATHER_FIELDS = 'temperature_2m_max,temperature_2m_min,weather_code,sunrise,sunset';
+  const TRIP_FORECAST_FIELDS = 'surface_pressure,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation,precipitation_probability,weather_code,temperature_2m';
   const $ = id => document.getElementById(id);
   const number = x => Number(x).toFixed(1).replace('.', ',');
   const dates = new Intl.DateTimeFormat('ru-RU',{timeZone:'Europe/Moscow',day:'numeric',month:'long'});
@@ -607,7 +665,7 @@
     humidity:{index:2,title:'Изменение влажности',legend:'Влажность, %',unit:'%',tooltip:'%',note:'Относительная влажность на высоте 2 м'},
     wind:{index:3,title:'Изменение скорости ветра',legend:'Скорость ветра, м/с',unit:'м/с',tooltip:'м/с',note:'Скорость ветра на высоте 10 м'}
   };
-  let period='week', metric='pressure', offset=0, points=[], isUpdating=false, savingAvailable=true, airWeather=null, sunForecast=null;
+  let period='week', metric='pressure', offset=0, points=[], isUpdating=false, savingAvailable=true, airWeather=null, sunForecast=null, tripForecast=null, tripForecastError=null;
   // День показывается как непрерывная SVG-лента. Скролл остаётся нативным (с инерцией Safari).
   let dayStripStart=null, dayWidth=0, dayChartRaf=0, dayScrollGuard=false;
 
@@ -653,6 +711,7 @@
   function loadSpotArchive(){
     airWeather=null; // Не переносим температуру и погоду предыдущей точки.
     sunForecast=null; // Солнечные времена из API принадлежат только прежней точке.
+    tripForecast=null; tripForecastError=null; // Не показываем прогноз старой точки.
     points=fromStorage().sort((a,b)=>a[0]-b[0]);
     archivePending.clear();archiveDone.clear();
     updateSpotLabels();
@@ -745,6 +804,7 @@
   async function update(){
     if(isUpdating){updateQueued=true;return;}
     isUpdating=true;const generation=spotGeneration;
+    loadTripForecast(generation); // Независимый запрос: прогноз поездки не мешает истории погоды.
     $('reload').disabled=true;$('reload').textContent='Загрузка…';
     try {
       const url='https://api.open-meteo.com/v1/forecast?latitude='+spot.lat+'&longitude='+spot.lon+
@@ -1049,6 +1109,7 @@
   let fishPrefs=readFishPrefs();
   $('waterType').value=fishPrefs.water;
   $('fishSpecies').value=fishPrefs.species;
+  $('tripSpecies').value=fishPrefs.species;
   function oppositeDir(deg){return directionName((deg+180)%360);}
   function freshFishWeather(){
     const p=points.slice().reverse().find(row=>row[0]<=Date.now()&&Number.isFinite(row[3])&&Number.isFinite(row[4]));
@@ -1136,6 +1197,148 @@
     // Влажность воздуха не задаёт отдельную поправку: надёжной калибровки нет.
     return {value:Math.max(20,Math.min(80,Math.round(pointsScore))),notes};
   }
+
+  // Погодный прогноз поездки загружается отдельно от 92-дневной истории.
+  // Никогда не смешиваем будущие модельные значения с уже сохранёнными наблюдениями.
+  const TRIP_WINDOW_HOURS=3;
+  const tripDayFmt=new Intl.DateTimeFormat('ru-RU',{timeZone:'Europe/Moscow',weekday:'short',day:'numeric',month:'short'});
+  function tripWeatherRisk(hour){
+    const gust=hour.gust,wind=hour.wind,rain=hour.rain,code=hour.code;
+    const unsafe=(Number.isFinite(gust)&&gust>=14)||(Number.isFinite(wind)&&wind>=10)||
+      (Number.isFinite(rain)&&rain>=5)||(Number.isFinite(code)&&code>=95);
+    let penalty=0;const notes=[];
+    if(Number.isFinite(gust)&&gust>=10){penalty+=9;notes.push('сильные порывы');}
+    else if(Number.isFinite(gust)&&gust>=8){penalty+=4;notes.push('порывистый ветер');}
+    if(Number.isFinite(rain)&&rain>=2){penalty+=8;notes.push('сильные осадки');}
+    else if(Number.isFinite(rain)&&rain>=0.5){penalty+=3;notes.push('осадки');}
+    if(Number.isFinite(hour.rainChance)&&hour.rainChance>=85){penalty+=6;notes.push('высокая вероятность осадков');}
+    else if(Number.isFinite(hour.rainChance)&&hour.rainChance>=65){penalty+=3;notes.push('возможны осадки');}
+    if(Number.isFinite(code)&&code>=95){notes.push('гроза');}
+    if(unsafe)return {unsafe:true,penalty,notes};
+    return {unsafe:false,penalty,notes};
+  }
+  function parseTripForecast(data){
+    const h=data?.hourly;
+    if(!Array.isArray(h?.time)||!Array.isArray(h?.wind_speed_10m)||!Array.isArray(h?.surface_pressure))
+      throw new Error('Нет почасового прогноза ветра и давления');
+    const hours=[];
+    for(let i=0;i<h.time.length;i++){
+      const ms=Number(h.time[i])*1000,pressure=Number(h.surface_pressure[i])*HPA_MM,wind=h.wind_speed_10m[i];
+      if(!Number.isFinite(ms)||!validPressure(pressure)||!Number.isFinite(wind))continue;
+      hours.push({time:ms,pressure,wind,dir:h.wind_direction_10m?.[i],
+        gust:h.wind_gusts_10m?.[i],rain:h.precipitation?.[i],
+        rainChance:h.precipitation_probability?.[i],code:h.weather_code?.[i],temp:h.temperature_2m?.[i]});
+    }
+    return hours;
+  }
+  async function loadTripForecast(generation){
+    if(generation!==spotGeneration)return;
+    tripForecastError=null;
+    const url='https://api.open-meteo.com/v1/forecast?latitude='+spot.lat+'&longitude='+spot.lon+
+      '&hourly='+TRIP_FORECAST_FIELDS+'&forecast_days=5&timezone=Europe%2FMoscow&timeformat=unixtime&wind_speed_unit=ms';
+    try{
+      const data=await loadJSON(url);
+      if(generation!==spotGeneration)return;
+      const hours=parseTripForecast(data);
+      if(hours.length<3)throw new Error('Пока мало прогнозных часов');
+      tripForecast={hours,loadedAt:Date.now()};
+      tripForecastError=null;
+    }catch(err){
+      if(generation!==spotGeneration)return;
+      // При кратковременном сбое оставляем прежний прогноз этой же точки, помечая его устаревшим.
+      tripForecastError='Не удалось обновить прогноз: '+(err.name==='AbortError'?'истекло время ожидания':err.message);
+    }
+    renderTripPlanner();
+  }
+  function tripScoreHour(hour,index,hours,species){
+    const old=hours[index-3];
+    const pressureDelta=old&&hour.time-old.time===3*3600000?hour.pressure-old.pressure:null;
+    const snapshot={last:[hour.time,hour.pressure,null,hour.wind,hour.dir],delta:pressureDelta};
+    const kinds=species==='all'?['pike','zander','perch']:[species];
+    const scores=kinds.map(kind=>biteSpeciesScore(kind,fishPrefs.water,snapshot,hour.time)?.value).filter(Number.isFinite);
+    if(!scores.length)return null;
+    const risk=tripWeatherRisk(hour);
+    return {value:Math.max(20,Math.min(80,Math.round(scores.reduce((a,b)=>a+b,0)/scores.length-risk.penalty))),risk};
+  }
+  function buildTripDays(now=Date.now()){
+    if(!tripForecast)return [];
+    const hours=tripForecast.hours,kind=$('tripSpecies').value;
+    const firstDay=moscowDayTime(now),result=[];
+    for(let d=0;d<5;d++){
+      const start=firstDay+d*DAY,end=start+DAY;
+      const candidates=[];let unsafeHours=0;
+      for(let i=0;i<=hours.length-TRIP_WINDOW_HOURS;i++){
+        const rows=hours.slice(i,i+TRIP_WINDOW_HOURS);
+        if(rows[0].time<Math.max(start,now)||rows.at(-1).time>=end||
+          rows.some((row,j)=>j&&row.time-rows[j-1].time!==3600000))continue;
+        const rated=rows.map((row,j)=>tripScoreHour(row,i+j,hours,kind));
+        if(rated.some(r=>!r||r.risk.unsafe)){unsafeHours++;continue;}
+        const score=Math.round(rated.reduce((sum,r)=>sum+r.value,0)/rated.length);
+        const meanWind=rows.reduce((sum,r)=>sum+r.wind,0)/rows.length;
+        const maxGust=Math.max(...rows.map(r=>Number.isFinite(r.gust)?r.gust:0));
+        const maxRainChance=Math.max(...rows.map(r=>Number.isFinite(r.rainChance)?r.rainChance:0));
+        const maxRain=Math.max(...rows.map(r=>Number.isFinite(r.rain)?r.rain:0));
+        const reasons=[];
+        if(meanWind<=6&&meanWind>=1.5)reasons.push('умеренный ветер');
+        if(maxRain<0.5)reasons.push('без сильных осадков');
+        if([5,6,7,8,17,18,19,20,21].includes(new Date(rows[0].time+MSK).getUTCHours()))reasons.push('время возможной активности');
+        const desc=describeWeather(rows[0].code,true);
+        candidates.push({score,from:rows[0].time,to:rows.at(-1).time+3600000,
+          meanWind,maxGust,maxRainChance,maxRain,description:desc.text,icon:desc.icon,reasons});
+      }
+      candidates.sort((a,b)=>b.score-a.score||a.from-b.from);
+      result.push({date:start,best:candidates[0]||null,unsafeHours});
+    }
+    return result;
+  }
+  function createText(tag,cls,textValue){
+    const el=document.createElement(tag);if(cls)el.className=cls;el.textContent=textValue;return el;
+  }
+  function renderTripPlanner(){
+    const feature=$('tripBest'),list=$('tripDays'),stamp=$('tripStatus');
+    if(!feature||!list)return;
+    feature.replaceChildren();list.replaceChildren();
+    if(!tripForecast){
+      feature.className='trip-empty';
+      feature.textContent=tripForecastError||'Получаем прогноз на ближайшие пять дней…';
+      stamp.textContent=tripForecastError?'Прогноз недоступен':'Загрузка…';
+      return;
+    }
+    if(Date.now()-tripForecast.loadedAt>8*3600000){
+      feature.className='trip-empty';feature.textContent='Прогноз устарел. Подключите интернет и нажмите «Обновить».';
+      stamp.textContent='Нужно обновление';return;
+    }
+    const days=buildTripDays();
+    const ranked=days.filter(d=>d.best).sort((a,b)=>b.best.score-a.best.score||a.date-b.date);
+    const winner=ranked[0];
+    stamp.textContent=tripForecastError?'Сохранённый прогноз · ошибка обновления':'Прогноз обновлён '+timeFormat.format(tripForecast.loadedAt)+' МСК';
+    if(!winner){
+      feature.className='trip-empty';feature.textContent='На ближайшие дни не найдено безопасных трёхчасовых окон. Проверьте ветер и погодные предупреждения перед поездкой.';
+    }else{
+      feature.className='trip-feature';
+      const top=createText('div','trip-feature-top','');
+      top.append(createText('span','trip-pill','⭐ Лучшее окно из 5 дней'),createText('span','trip-feature-score',winner.best.score+' / 100'));
+      feature.append(top,createText('div','trip-feature-name',tripDayFmt.format(winner.date)),
+        createText('div','trip-feature-time',timeFormat.format(winner.best.from)+'–'+timeFormat.format(winner.best.to)+' МСК'),
+        createText('div','trip-feature-note',winner.best.icon+' '+winner.best.description+' · Ветер ≈ '+number(winner.best.meanWind)+' м/с · Возможность осадков до '+Math.round(winner.best.maxRainChance)+'%. '+
+          (winner.best.reasons.join(' · ')||'Оценка по погоде и времени суток')+'.'));
+    }
+    for(const day of days){
+      const card=createText('article','trip-day'+(winner&&day.date===winner.date?' is-best':''),'');
+      const head=createText('div','trip-day-header','');
+      head.append(createText('strong','trip-day-name',tripDayFmt.format(day.date)),
+        createText('span','trip-day-score',day.best?day.best.score+' / 100':'—'));
+      card.append(head);
+      if(day.best){
+        const bar=createText('div','trip-progress','');const fill=document.createElement('span');fill.style.width=day.best.score+'%';bar.append(fill);
+        card.append(bar,createText('div','trip-day-time','🕒 '+timeFormat.format(day.best.from)+'–'+timeFormat.format(day.best.to)+' МСК'),
+          createText('div','trip-day-weather',day.best.icon+' '+day.best.description+' · Ветер '+number(day.best.meanWind)+' м/с · Порывы до '+number(day.best.maxGust)+' м/с · Осадки до '+Math.round(day.best.maxRainChance)+'%'));
+      }else card.append(createText('p','trip-day-weather',day.unsafeHours?'Нет подходящего безопасного окна по прогнозу':'Нет полного прогноза на три часа'));
+      if(day.unsafeHours)card.append(createText('div','trip-risk','⚠️ Некоторые часы исключены: возможны гроза, ливень или сильный ветер.'));
+      list.append(card);
+    }
+  }
+
   function renderBiteIndex(){
     const box=$('biteScores'),caption=$('biteExplanation'),stamp=$('biteFreshness');
     const now=Date.now(),snapshot=biteSnapshot(now);
@@ -1285,9 +1488,16 @@
     $(key).addEventListener('change',()=>{
       fishPrefs={water:$('waterType').value,species:$('fishSpecies').value};
       try{localStorage.setItem(FISH_PREF_KEY,JSON.stringify(fishPrefs));}catch(_){}
-      renderFish();
+      $('tripSpecies').value=fishPrefs.species;
+      renderFish();renderTripPlanner();
     });
   }
+  $('tripSpecies').addEventListener('change',()=>{
+    fishPrefs={...fishPrefs,species:$('tripSpecies').value};
+    $('fishSpecies').value=fishPrefs.species;
+    try{localStorage.setItem(FISH_PREF_KEY,JSON.stringify(fishPrefs));}catch(_){}
+    renderFish();renderTripPlanner();
+  });
   function setStat(id,value){$(id).textContent=value===null?'—':number(value);}
   function showStats(filtered){
     const meta=METRICS[metric],val=valuePoints(filtered);
@@ -1521,7 +1731,7 @@
     $('periodTitle').textContent=rangeTitle(range);$('next').disabled=offset>=0;
     $('chartTitle').textContent=meta.title;$('chartLegend').textContent=meta.legend;$('metricNote').textContent=meta.note;
     $('count').textContent=valuePoints(filtered).length+' знач.';
-    showCurrent();showMoon();renderAirWeather();renderSunTimes();renderFish();showStats(filtered);drawChart(filtered,range);showHistory(filtered);
+    showCurrent();showMoon();renderAirWeather();renderSunTimes();renderFish();renderTripPlanner();showStats(filtered);drawChart(filtered,range);showHistory(filtered);
     $('stored').textContent=points.length+' значений сохранено'+(savingAvailable?' в браузере':' только до закрытия страницы')+'.';
     document.querySelectorAll('[data-period]').forEach(btn=>btn.setAttribute('aria-pressed',String(btn.dataset.period===period)));
     document.querySelectorAll('[data-metric]').forEach(btn=>btn.setAttribute('aria-pressed',String(btn.dataset.metric===metric)));
