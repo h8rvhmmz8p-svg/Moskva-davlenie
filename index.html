@@ -58,6 +58,16 @@
     .legend:before {content:"";display:inline-block;background:#386aeb;border-radius:2px;width:13px;height:3px;vertical-align:3px;margin-right:7px;}
     .chart-wrap {height:265px;position:relative;margin-left:-7px;margin-right:-7px;}
     #graph {width:100%;height:100%;overflow:visible;touch-action:pan-y;display:block;}
+    .chart-scroller {width:100%;height:100%;overflow:hidden;position:relative;}
+    .chart-scroller.is-day {overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;touch-action:pan-x pan-y;}
+    .chart-scroller.is-day::-webkit-scrollbar {display:none;}
+    .chart-scroller.is-day #graph {touch-action:pan-x pan-y;max-width:none;}
+    .chart-axis {position:absolute;left:0;top:0;height:100%;width:47px;display:none;pointer-events:none;background:linear-gradient(90deg,var(--panel-bg) 78%,transparent);z-index:2;}
+    .chart-wrap.is-day .chart-axis {display:block;}
+    .chart-wrap.is-day .chart-empty {position:absolute;inset:0;pointer-events:none;background:var(--panel-bg);opacity:.93;}
+    .chart-swipe-hint {display:none;margin-top:10px;align-items:center;justify-content:center;gap:6px;color:var(--muted);font-size:11px;text-align:center;line-height:1.5;}
+    .chart-swipe-hint.is-day {display:flex;}
+
     .chart-empty{height:100%;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#738199;font-size:13px;line-height:1.7;padding:18px;}
     .chart-empty strong{font-size:17px;color:#263651;}
     .point-label {min-height:20px;text-align:center;color:#64748b;font-size:12px;margin:3px 0 0;}
@@ -551,8 +561,8 @@
       </div>
       <div class="nav"><button type="button" id="prev" aria-label="Предыдущий период">‹</button><div id="periodTitle" class="nav-name">—</div><button type="button" id="next" aria-label="Следующий период">›</button></div>
       <div class="chart-head"><span class="legend" id="chartLegend">Давление, мм рт. ст.</span><span id="count">—</span></div>
-      <div class="chart-wrap"><svg id="graph" role="img" aria-label="График атмосферного давления"></svg><div id="emptyChart" class="chart-empty"><strong>Нет данных за этот период</strong><span>Для старых дат попробуйте обновление или другой период.</span></div></div>
-      <div class="point-label" id="pointLabel">Коснитесь графика, чтобы узнать значение</div>
+      <div class="chart-wrap" id="chartWrap"><div id="chartScroller" class="chart-scroller"><svg id="graph" role="img" aria-label="График атмосферного давления"></svg></div><svg id="chartAxis" class="chart-axis" aria-hidden="true"></svg><div id="emptyChart" class="chart-empty"><strong>Нет данных за этот период</strong><span>Для старых дат попробуйте обновление или другой период.</span></div></div>
+      <div class="chart-swipe-hint" id="chartSwipeHint" role="note">↔ Свайп вправо — прошлые дни, влево — к сегодняшнему</div><div class="point-label" id="pointLabel">Коснитесь графика, чтобы узнать значение</div>
       <div class="metric-note" id="metricNote">Давление у поверхности земли</div>
       <div id="notice" class="notice" role="status"></div>
       <div class="source">Источник температуры воздуха, погодных условий, давления, ветра и влажности: <a href="https://open-meteo.com/en/docs" target="_blank" rel="noopener noreferrer">Open-Meteo</a> (модельные данные, не замеры Гидрометцентра). Ветер — на высоте 10 м; влажность — на высоте 2 м. Фаза Луны вычисляется по астрономическому циклу приблизительно. Архивные значения могут уточняться.</div>
@@ -598,6 +608,9 @@
     wind:{index:3,title:'Изменение скорости ветра',legend:'Скорость ветра, м/с',unit:'м/с',tooltip:'м/с',note:'Скорость ветра на высоте 10 м'}
   };
   let period='week', metric='pressure', offset=0, points=[], isUpdating=false, savingAvailable=true, airWeather=null, sunForecast=null;
+  // День показывается как непрерывная SVG-лента. Скролл остаётся нативным (с инерцией Safari).
+  let dayStripStart=null, dayWidth=0, dayChartRaf=0, dayScrollGuard=false;
+
   const archivePending = new Set(), archiveDone = new Set();
   const validPressure = x => Number.isFinite(x) && x>600 && x<850;
   const nullable = (x, min, max) => Number.isFinite(x) && x>=min && x<=max ? x : null;
@@ -1287,8 +1300,151 @@
     $('statMaxTime').textContent=dateShort.format(max[0])+' · '+timeFormat.format(max[0]);
     $('statMinTime').textContent=dateShort.format(min[0])+' · '+timeFormat.format(min[0]);
   }
+  function drawDailyStrip(){
+    const svg=$('graph'),axis=$('chartAxis'),scroll=$('chartScroller'),wrap=$('chartWrap');
+    wrap.classList.add('is-day');scroll.classList.add('is-day');$('chartSwipeHint').classList.add('is-day');
+    const today=moscowDayTime(Date.now());
+    const newStrip=dayStripStart===null;
+    if(newStrip)dayStripStart=today-10*DAY;
+    // В ширину экрана помещается приблизительно один день. Можно остановиться между днями.
+    const previousWidth=dayWidth;
+    dayWidth=Math.max(260,Math.round(scroll.clientWidth));
+    const width=dayWidth*Math.max(1,Math.round((today+DAY-dayStripStart)/DAY));
+    const selectedLeft=Math.max(0,Math.round((today+offset*DAY-dayStripStart)/DAY)*dayWidth);
+    const oldScroll=scroll.scrollLeft;
+    const targetLeft=newStrip?selectedLeft:previousWidth?oldScroll*dayWidth/previousWidth:selectedLeft;
+    const H=250,t=22,b=47;
+    svg.replaceChildren();axis.replaceChildren();
+    svg.style.display='block';svg.style.width=width+'px';svg.style.height='100%';
+    svg.setAttribute('viewBox','0 0 '+width+' '+H);
+    svg.setAttribute('aria-label',METRICS[metric].title+' по дням; график можно прокручивать по горизонтали');
+    const vals=points.filter(p=>p[0]>=dayStripStart&&p[0]<today+DAY&&p[0]<=Date.now()&&Number.isFinite(p[METRICS[metric].index]));
+    const idx=METRICS[metric].index,numbers=vals.map(p=>p[idx]);
+    let lo=NaN,hi=NaN;
+    if(numbers.length){
+      lo=Math.floor(Math.min(...numbers)-1);hi=Math.ceil(Math.max(...numbers)+1);
+      if(metric==='humidity'){lo=Math.max(0,lo);hi=Math.min(100,hi);}
+      if(metric==='wind')lo=Math.max(0,lo);
+      if(hi-lo<5){const mid=(hi+lo)/2;lo=Math.max(0,mid-2.5);hi=Math.min(metric==='humidity'?100:Infinity,Math.max(lo+5,mid+2.5));}
+      if(hi<=lo)hi=lo+5;
+    }
+    $('emptyChart').style.display=numbers.length?'none':'flex';
+    const ns='http://www.w3.org/2000/svg';
+    function add(parent,tag,attributes,body){
+      const el=document.createElementNS(ns,tag);
+      for(const [k,v] of Object.entries(attributes||{}))el.setAttribute(k,String(v));
+      if(body!==undefined)el.textContent=body;
+      parent.appendChild(el);return el;
+    }
+    if(numbers.length){
+      const x=ms=>(ms-dayStripStart)/DAY*dayWidth;
+      const y=v=>t+(hi-v)/(hi-lo)*(H-t-b);
+      const days=Math.ceil(width/dayWidth);
+      // Линии сетки и деления по часам проходят через все дни без разрыва.
+      for(let k=0;k<5;k++){
+        const yy=t+(H-t-b)*k/4;
+        add(svg,'line',{x1:0,y1:yy,x2:width,y2:yy,stroke:'var(--graph-grid)','stroke-dasharray':'3 5'});
+      }
+      axis.setAttribute('viewBox','0 0 47 '+H);
+      for(let k=0;k<5;k++){
+        const yy=t+(H-t-b)*k/4,v=hi-(hi-lo)*k/4;
+        add(axis,'text',{x:40,y:yy+4,fill:'var(--graph-axis)','font-size':11,'text-anchor':'end'},metric==='humidity'?String(Math.round(v)):number(v));
+      }
+      for(let d=0;d<days;d++){
+        const xx=d*dayWidth,ms=dayStripStart+d*DAY;
+        if(d%2===0)add(svg,'rect',{x:xx,y:t,width:dayWidth,height:H-t-b,fill:'var(--graph-grid)',opacity:.09});
+        add(svg,'line',{x1:xx,y1:t,x2:xx,y2:H-b,stroke:'var(--graph-axis)',opacity:.42,'stroke-dasharray':'4 6'});
+        add(svg,'text',{x:xx+dayWidth/2,y:H-6,fill:'var(--graph-axis)','font-size':12,'font-weight':700,'text-anchor':'middle'},dateShort.format(ms));
+        for(const hour of [6,12,18]){
+          const hx=xx+dayWidth*hour/24;
+          add(svg,'line',{x1:hx,y1:H-b,x2:hx,y2:H-b+4,stroke:'var(--graph-axis)',opacity:.45});
+          add(svg,'text',{x:hx,y:H-b+15,fill:'var(--graph-axis)','font-size':9,'text-anchor':'middle'},hour+':00');
+        }
+      }
+      const defs=add(svg,'defs');
+      const grad=add(defs,'linearGradient',{id:'pressureFill',x1:'0',x2:'0',y1:'0',y2:'1'});
+      add(grad,'stop',{offset:'0%','stop-color':'var(--graph-line)','stop-opacity':'.20'});
+      add(grad,'stop',{offset:'100%','stop-color':'var(--graph-line)','stop-opacity':'0'});
+      const segments=[];let segment=[];
+      for(const point of vals){
+        if(segment.length&&point[0]-segment.at(-1)[0]>3*60*60*1000){segments.push(segment);segment=[];}
+        segment.push(point);
+      }
+      if(segment.length)segments.push(segment);
+      for(const seg of segments){
+        const path=seg.map((point,j)=>(j?'L':'M')+x(point[0]).toFixed(2)+' '+y(point[idx]).toFixed(2)).join(' ');
+        const bottom=y(lo);
+        add(svg,'path',{d:path+' L '+x(seg.at(-1)[0]).toFixed(2)+' '+bottom+' L '+x(seg[0][0]).toFixed(2)+' '+bottom+' Z',fill:'url(#pressureFill)'});
+        add(svg,'path',{d:path,stroke:'var(--graph-line)','stroke-width':2.7,fill:'none','stroke-linecap':'round','stroke-linejoin':'round'});
+      }
+      const last=vals.at(-1);
+      add(svg,'circle',{cx:x(last[0]),cy:y(last[idx]),r:4.5,fill:'var(--graph-line)',stroke:'var(--graph-dot-border)','stroke-width':2});
+      function pick(clientX){
+        const rect=svg.getBoundingClientRect();
+        const px=(clientX-rect.left)/rect.width*width;
+        const ms=dayStripStart+Math.max(0,Math.min(width,px))/dayWidth*DAY;
+        let closest=null,dist=3*60*60*1000;
+        for(const p of vals){const d=Math.abs(p[0]-ms);if(d<dist){dist=d;closest=p;}}
+        $('pointLabel').textContent=closest?
+          dateShort.format(closest[0])+' · '+timeFormat.format(closest[0])+' МСК — '+number(closest[idx])+' '+METRICS[metric].tooltip:
+          'Рядом с выбранным временем нет измерений';
+      }
+      svg.onpointerdown=e=>pick(e.clientX);
+      svg.onpointermove=e=>{if(e.buttons)pick(e.clientX);};
+    } else {svg.onpointerdown=null;svg.onpointermove=null;}
+    scroll.scrollLeft=Math.max(0,Math.min(scroll.scrollWidth-scroll.clientWidth,targetLeft));
+    $('pointLabel').textContent='Листайте для просмотра прошлых дней или коснитесь линии для значения';
+  }
+  function currentDayFromScroll(){
+    if(period!=='day'||!dayWidth||dayStripStart===null)return;
+    const maxDay=Math.max(0,Math.round((moscowDayTime(Date.now())-dayStripStart)/DAY));
+    const index=Math.max(0,Math.min(maxDay,Math.round($('chartScroller').scrollLeft/dayWidth)));
+    const selectedDay=dayStripStart+index*DAY;
+    const newOffset=Math.min(0,Math.round((selectedDay-moscowDayTime(Date.now()))/DAY));
+    if(newOffset!==offset){
+      offset=newOffset;
+      const range=getPeriodRange(),filtered=periodPoints(range);
+      $('periodTitle').textContent=rangeTitle(range);
+      $('next').disabled=offset>=0;
+      $('count').textContent=valuePoints(filtered).length+' знач.';
+      showStats(filtered);showHistory(filtered);
+      maybeArchive();
+    }
+    // Расширяем ленту слева пачками, сохраняя текущий момент и положение пальца.
+    if($('chartScroller').scrollLeft<dayWidth*1.5 && !dayScrollGuard){
+      dayScrollGuard=true;
+      const oldLeft=$('chartScroller').scrollLeft,addDays=10;
+      dayStripStart-=addDays*DAY;
+      // drawDailyStrip сохраняет scrollLeft; нужно сместить его на добавленную ширину.
+      drawDailyStrip();
+      $('chartScroller').scrollLeft=oldLeft+addDays*dayWidth;
+      requestAnimationFrame(()=>{dayScrollGuard=false;});
+    }
+  }
+  $('chartScroller').addEventListener('scroll',()=>{
+    if(period!=='day'||dayChartRaf)return;
+    dayChartRaf=requestAnimationFrame(()=>{dayChartRaf=0;currentDayFromScroll();});
+  },{passive:true});
+  function goToDay(dayOffset,animate){
+    const today=moscowDayTime(Date.now());
+    const targetStart=today+dayOffset*DAY;
+    if(dayStripStart===null){offset=dayOffset;render();return;}
+    if(targetStart<dayStripStart){
+      dayStripStart=targetStart-6*DAY;
+      drawDailyStrip();
+    }
+    const x=Math.max(0,Math.round((targetStart-dayStripStart)/DAY)*dayWidth);
+    $('chartScroller').scrollTo({left:x,behavior:animate?'smooth':'auto'});
+    if(!animate){currentDayFromScroll();}
+  }
+
   function drawChart(filtered,range){
+    if(period==='day'){drawDailyStrip();return;}
+    dayStripStart=null;dayWidth=0;
+    $('chartWrap').classList.remove('is-day');$('chartScroller').classList.remove('is-day');$('chartSwipeHint').classList.remove('is-day');
+    $('chartAxis').replaceChildren();
     const svg=$('graph'),empty=$('emptyChart'),vals=valuePoints(filtered),meta=METRICS[metric],i=meta.index;
+    svg.style.width='100%';
     svg.replaceChildren();
     if(!vals.length){svg.style.display='none';empty.style.display='flex';$('pointLabel').textContent='';return;}
     svg.style.display='block';empty.style.display='none';
@@ -1390,10 +1546,11 @@
     }catch(err){showNotice('Не удалось загрузить старый период: '+err.message+'. Можно попробовать ещё раз после обновления страницы.');}
     finally{archivePending.delete(key);}
   }
-  document.querySelectorAll('[data-period]').forEach(btn=>btn.addEventListener('click',()=>{period=btn.dataset.period;offset=0;render();maybeArchive();}));
+  window.addEventListener('resize',()=>{if(period==='day')render();});
+  document.querySelectorAll('[data-period]').forEach(btn=>btn.addEventListener('click',()=>{period=btn.dataset.period;offset=0;dayStripStart=null;render();maybeArchive();}));
   document.querySelectorAll('[data-metric]').forEach(btn=>btn.addEventListener('click',()=>{metric=btn.dataset.metric;render();maybeArchive();}));
-  $('prev').addEventListener('click',()=>{offset--;render();maybeArchive();});
-  $('next').addEventListener('click',()=>{if(offset<0){offset++;render();maybeArchive();}});
+  $('prev').addEventListener('click',()=>{if(period==='day')goToDay(offset-1,true);else{offset--;render();maybeArchive();}});
+  $('next').addEventListener('click',()=>{if(offset<0){if(period==='day')goToDay(offset+1,true);else{offset++;render();maybeArchive();}}});
   $('reload').addEventListener('click',update);
   $('export').addEventListener('click',()=>{
     const filtered=periodPoints(getPeriodRange());
